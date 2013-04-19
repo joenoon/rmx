@@ -81,13 +81,13 @@ module RMExtensions
     # example:
     #
     # rmext_retained_context do |x|
-    #   on_serial_q("my_serial_q") do
+    #   rmext_on_serial_q("my_serial_q") do
     #     some_async_http_request do |results1|
     #       x.results1 = results1
-    #       on_serial_q("my_serial_q") do
+    #       rmext_on_serial_q("my_serial_q") do
     #         some_other_async_http_request do |results2|
     #           x.results2 = results2
-    #           on_main_q do
+    #           rmext_on_main_q do
     #             p "results1", x.results1
     #             p "results2", x.results2
     #             x.detach!
