@@ -71,6 +71,11 @@ module RMExtensions
       end
     end
 
+    # #rmext_context yields an object you can treat like an openstruct (the "context")
+    def rmext_context(&block)
+      ::RMExtensions::Context.create(self, &block)
+    end
+
     # #rmext_retained_context yields an object you can treat like an openstruct.  you can get/set any
     # property on it.  the context is globally retained, until #detach! is called on the context.
     # this convention should fill the gap where local variables and scope bugs currently occur in RM,
@@ -103,13 +108,40 @@ module RMExtensions
     # you can call #beginBackground! on the context, and it will check-out a background task identifier,
     # and automatically end the background task when you call #detach! as normal.
     def rmext_retained_context(&block)
-      ::RMExtensions::RetainedContext.retained(self, &block)
+      ::RMExtensions::RetainedContext.create(self, &block)
     end
 
   end
 
-  # You don't use this class directly.
-  class RetainedContext
+  # You don't use these classes directly.
+  class Context
+
+    class << self
+      def create(origin, &block)
+        x = new
+        block.call(x)
+        x
+      end
+    end
+
+    attr_accessor :hash
+
+    def initialize
+      self.hash = {}
+    end
+
+    def method_missing(method, *args)
+      m = method.to_s
+      if m =~ /(.+)?=$/
+        hash[$1] = args.first
+      else
+        hash[m]
+      end
+    end
+
+  end
+
+  class RetainedContext < Context
 
     class << self
       def rmext_retains
@@ -122,7 +154,7 @@ module RMExtensions
         @rmext_retains_queue
       end
 
-      def retained(origin, &block)
+      def create(origin, &block)
         x = new
         x.hash["retained_origin"] = origin
         x.hash["retained_block"] = block
@@ -130,12 +162,6 @@ module RMExtensions
         block.call(x)
         x
       end
-    end
-
-    attr_accessor :hash
-
-    def initialize
-      self.hash = {}
     end
 
     # if you provide a block, you are responsible for calling #detach!,
@@ -163,12 +189,7 @@ module RMExtensions
       unless hash
         raise "You detached this rmext_retained_context and then called: #{method}"
       end
-      m = method.to_s
-      if m =~ /(.+)?=$/
-        hash[$1] = args.first
-      else
-        hash[m]
-      end
+      super
     end
 
   end
