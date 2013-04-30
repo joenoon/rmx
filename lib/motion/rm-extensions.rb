@@ -146,8 +146,8 @@ module RMExtensions
       wop.observe(object, key, &b)
     end
 
-    def rmext_performBlockOnDealloc(block)
-      internalObject = RMExtExecuteOnDeallocInternalObject.new(block)
+    def rmext_performBlockOnDealloc(&block)
+      internalObject = RMExtExecuteOnDeallocInternalObject.create(&block)
       internalObject.obj = self
       @rmext_performBlockOnDealloc_blocks ||= {}
       @rmext_performBlockOnDealloc_blocks[internalObject] = internalObject
@@ -241,7 +241,7 @@ module RMExtensions
     end
 
     def detach_on_death_of(object)
-      object.rmext_performBlockOnDealloc(detach_death_proc)
+      object.rmext_performBlockOnDealloc(&detach_death_proc)
     end
 
     def detach_death_proc
@@ -266,7 +266,7 @@ module RMExtensions
       self.strong_object_id = strong_object.object_id
       self.strong_class_name = strong_object.class.name
       self.class.weak_observer_map[strong_object_id] = self
-      strong_object.rmext_performBlockOnDealloc(kill_observation_proc)
+      strong_object.rmext_performBlockOnDealloc(&kill_observation_proc)
     end
     # isolate this in its own method so it wont create a retain cycle
     def kill_observation_proc
@@ -295,8 +295,10 @@ module RMExtensions
   class RMExtExecuteOnDeallocInternalObject
     attr_accessor :block
     rmext_weak_attr_accessor :obj
-    def initialize(block)
-      self.block = block
+    def self.create(&block)
+      x = new
+      x.block = block
+      x
     end
     def dealloc
       if block
