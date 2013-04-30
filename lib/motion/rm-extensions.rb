@@ -3,6 +3,25 @@ module RMExtensions
   # this module is included on Object, so these methods are available from anywhere in your code.
   module ObjectExtensions
 
+    def rmext_weak_attr_accessor(*attrs)
+      attrs.each do |attr|
+        define_method(attr) do
+          if val = instance_variable_get("@#{attr}")
+            val.nonretainedObjectValue
+          end
+        end
+        define_method("#{attr}=") do |val|
+          if val
+            nonretained_val = NSValue.valueWithNonretainedObject(val)
+            instance_variable_set("@#{attr}", nonretained_val)
+          else
+            instance_variable_set("@#{attr}", val)
+          end
+          val
+        end
+      end
+    end
+
     def rmext_assert_main_thread!
       raise "This method must be called on the main thread." unless NSThread.currentThread.isMainThread
     end
@@ -111,15 +130,51 @@ module RMExtensions
       ::RMExtensions::RetainedContext.create(self, &block)
     end
 
+
+    def rmext_observe(object, key, &block)
+      # p "+ rmext_observe", self, object, key
+      wop = ::RMExtensions::WeakObserverProxy.get(self)
+      rmext_observe_passive(object, key, &block)
+      block.call(object.send(key)) unless block.nil?
+    end
+
+    def rmext_observe_passive(object, key, &block)
+      wop = ::RMExtensions::WeakObserverProxy.get(self)
+      b = -> (old_value, new_value) do
+        block.call(new_value) unless block.nil?
+      end
+      wop.observe(object, key, &b)
+    end
+
+    def rmext_performBlockOnDealloc(block)
+      internalObject = RMExtExecuteOnDeallocInternalObject.new(block)
+      internalObject.obj = self
+      @rmext_performBlockOnDealloc_blocks ||= {}
+      @rmext_performBlockOnDealloc_blocks[internalObject] = internalObject
+      nil
+    end
+
+    def rmext_cancelDeallocBlockWithKey2(blockKey)
+      @rmext_performBlockOnDealloc_blocks ||= {}
+      internalObject = @rmext_performBlockOnDealloc_blocks[blockKey]
+      internalObject.block = nil
+      @rmext_performBlockOnDealloc_blocks.delete(blockKey)
+      nil
+    end
+
   end
 
+end
+Object.send(:include, ::RMExtensions::ObjectExtensions)
+
+module RMExtensions
   # You don't use these classes directly.
   class Context
 
     class << self
       def create(origin, &block)
         x = new
-        block.call(x)
+        block.call(x) unless block.nil?
         x
       end
     end
@@ -159,7 +214,7 @@ module RMExtensions
         x.hash["retained_origin"] = origin
         x.hash["retained_block"] = block
         x.rmext_retain!
-        block.call(x)
+        block.call(x) unless block.nil?
         x
       end
     end
@@ -172,7 +227,7 @@ module RMExtensions
         if hash["bgTaskExpirationHandler"]
           hash["bgTaskExpirationHandler"].call
         else
-          x.detach!
+          detach!
         end
       end)
     end
@@ -185,6 +240,14 @@ module RMExtensions
       rmext_detach!
     end
 
+    def detach_on_death_of(object)
+      object.rmext_performBlockOnDealloc(detach_death_proc)
+    end
+
+    def detach_death_proc
+      proc { |x| detach! }
+    end
+
     def method_missing(method, *args)
       unless hash
         raise "You detached this rmext_retained_context and then called: #{method}"
@@ -194,5 +257,54 @@ module RMExtensions
 
   end
 
+  class WeakObserverProxy
+    include BW::KVO
+    rmext_weak_attr_accessor :obj
+    attr_accessor :strong_object_id, :strong_class_name
+    def initialize(strong_object)
+      self.obj = strong_object
+      self.strong_object_id = strong_object.object_id
+      self.strong_class_name = strong_object.class.name
+      self.class.weak_observer_map[strong_object_id] = self
+      strong_object.rmext_performBlockOnDealloc(kill_observation_proc)
+    end
+    # isolate this in its own method so it wont create a retain cycle
+    def kill_observation_proc
+      proc { |x|
+        # uncomment to verify deallocation is working.  if not, there is probably
+        # a retain cycle somewhere in your code.
+        # p "kill_observation_proc", self
+        self.obj = nil
+        unobserve_all
+        self.class.weak_observer_map.delete(strong_object_id)
+      }
+    end
+    def inspect
+      "#{strong_class_name}:#{strong_object_id}"
+    end
+    def self.weak_observer_map
+      Dispatch.once { $weak_observer_map = {} }
+      $weak_observer_map
+    end
+    def self.get(obj)
+      return obj if obj.is_a?(WeakObserverProxy)
+      weak_observer_map[obj.object_id] || new(obj)
+    end
+  end
+
+  class RMExtExecuteOnDeallocInternalObject
+    attr_accessor :block
+    rmext_weak_attr_accessor :obj
+    def initialize(block)
+      self.block = block
+    end
+    def dealloc
+      if block
+        block.call(obj)
+        self.block = nil
+      end
+      super
+    end
+  end
+
 end
-Object.send(:include, ::RMExtensions::ObjectExtensions)
