@@ -124,7 +124,7 @@ module RMExtensions
     #
     # experimental feature:
     #
-    # you can call #beginBackground! on the context, and it will check-out a background task identifier,
+    # you can call #begin_background! on the context, and it will check-out a background task identifier,
     # and automatically end the background task when you call #detach! as normal.
     def rmext_retained_context(&block)
       ::RMExtensions::RetainedContext.create(self, &block)
@@ -146,19 +146,20 @@ module RMExtensions
       wop.observe(object, key, &b)
     end
 
-    def rmext_performBlockOnDealloc(&block)
-      internalObject = RMExtExecuteOnDeallocInternalObject.create(&block)
+    def rmext_on_dealloc(&block)
+      internalObject = ::RMExtensions::OnDeallocInternalObject.create(&block)
       internalObject.obj = self
-      @rmext_performBlockOnDealloc_blocks ||= {}
-      @rmext_performBlockOnDealloc_blocks[internalObject] = internalObject
+      @rmext_on_dealloc_blocks ||= {}
+      @rmext_on_dealloc_blocks[internalObject] = internalObject
       nil
     end
 
-    def rmext_cancelDeallocBlockWithKey2(blockKey)
-      @rmext_performBlockOnDealloc_blocks ||= {}
-      internalObject = @rmext_performBlockOnDealloc_blocks[blockKey]
-      internalObject.block = nil
-      @rmext_performBlockOnDealloc_blocks.delete(blockKey)
+    def rmext_cancel_on_dealloc(block)
+      @rmext_on_dealloc_blocks ||= {}
+      if internalObject = @rmext_on_dealloc_blocks[block]
+        internalObject.block = nil
+        @rmext_on_dealloc_blocks.delete(block)
+      end
       nil
     end
 
@@ -221,7 +222,7 @@ module RMExtensions
 
     # if you provide a block, you are responsible for calling #detach!,
     # otherwise, the expiration handler will just call #detach!
-    def beginBackground!(&block)
+    def begin_background!(&block)
       hash["bgTaskExpirationHandler"] = block
       hash["bgTask"] = UIApplication.sharedApplication.beginBackgroundTaskWithExpirationHandler(-> do
         if hash["bgTaskExpirationHandler"]
@@ -241,7 +242,7 @@ module RMExtensions
     end
 
     def detach_on_death_of(object)
-      object.rmext_performBlockOnDealloc(&detach_death_proc)
+      object.rmext_on_dealloc(&detach_death_proc)
     end
 
     def detach_death_proc
@@ -266,7 +267,7 @@ module RMExtensions
       self.strong_object_id = strong_object.object_id
       self.strong_class_name = strong_object.class.name
       self.class.weak_observer_map[strong_object_id] = self
-      strong_object.rmext_performBlockOnDealloc(&kill_observation_proc)
+      strong_object.rmext_on_dealloc(&kill_observation_proc)
     end
     # isolate this in its own method so it wont create a retain cycle
     def kill_observation_proc
@@ -292,7 +293,7 @@ module RMExtensions
     end
   end
 
-  class RMExtExecuteOnDeallocInternalObject
+  class OnDeallocInternalObject
     attr_accessor :block
     rmext_weak_attr_accessor :obj
     def self.create(&block)
