@@ -5,18 +5,27 @@ module RMExtensions
 
     def rmext_weak_attr_accessor(*attrs)
       attrs.each do |attr|
+        ptr = Pointer.new(:object)
+        ptr.assign(attr.to_sym)
         define_method(attr) do
-          if val = instance_variable_get("@#{attr}")
-            val.nonretainedObjectValue
-          end
+          associatedValueForKey(ptr)
         end
         define_method("#{attr}=") do |val|
-          if val.nil?
-            instance_variable_set("@#{attr}", nil)
-          else
-            # should we do an rmext_on_dealloc on the val?
-            instance_variable_set("@#{attr}", NSValue.valueWithNonretainedObject(val))
-          end
+          weaklyAssociateValue(val, withKey:ptr)
+          val
+        end
+      end
+    end
+
+    def rmext_copy_attr_accessor(*attrs)
+      attrs.each do |attr|
+        ptr = Pointer.new(:object)
+        ptr.assign(attr.to_sym)
+        define_method(attr) do
+          associatedValueForKey(ptr)
+        end
+        define_method("#{attr}=") do |val|
+          associateCopyOfValue(val, withKey:ptr)
           val
         end
       end
@@ -157,8 +166,7 @@ module RMExtensions
     end
 
     def rmext_on_dealloc(&block)
-      internalObject = ::RMExtensions::OnDeallocInternalObject.create(&block)
-      internalObject.obj = self
+      internalObject = ::RMExtensions::OnDeallocInternalObject.create("#{self.class.name}:#{object_id}", self, block)
       @rmext_on_dealloc_blocks ||= {}
       @rmext_on_dealloc_blocks[internalObject] = internalObject
       nil
@@ -316,14 +324,17 @@ module RMExtensions
   end
 
   class OnDeallocInternalObject
-    attr_accessor :block
+    attr_accessor :description, :block
     rmext_weak_attr_accessor :obj
-    def self.create(&block)
+    def self.create(description, obj, block)
       x = new
+      x.description = description
+      x.obj = obj
       x.block = block
       x
     end
     def dealloc
+      # p "dealloc OnDeallocInternalObject #{description}"
       if block
         block.call(obj)
         self.block = nil

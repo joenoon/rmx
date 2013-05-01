@@ -6,6 +6,9 @@ Extensions and helpers for dealing with various areas of rubymotion:
 - block/scope/local variable issues
 - GCD blocks
 - retaining objects through async procedures
+- weak attr_accessors
+
+Currently depends on bubblewrap and BlocksKit.
 
 ## Installation
 
@@ -13,13 +16,17 @@ Add this line to your application's Gemfile:
 
     gem 'rm-extensions'
 
+Add this line to your application's Rakefile:
+
+    pod 'BlocksKit'
+
 And then execute:
 
     $ bundle
 
 ## Usage
 
-Read through the commented code.
+Some code is commented.  TODO.
 
 ## Contributing
 
