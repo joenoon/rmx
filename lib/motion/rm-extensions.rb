@@ -11,11 +11,11 @@ module RMExtensions
           end
         end
         define_method("#{attr}=") do |val|
-          if val
-            nonretained_val = NSValue.valueWithNonretainedObject(val)
-            instance_variable_set("@#{attr}", nonretained_val)
+          if val.nil?
+            instance_variable_set("@#{attr}", nil)
           else
-            instance_variable_set("@#{attr}", val)
+            # should we do an rmext_on_dealloc on the val?
+            instance_variable_set("@#{attr}", NSValue.valueWithNonretainedObject(val))
           end
           val
         end
@@ -133,7 +133,6 @@ module RMExtensions
 
     def rmext_observe(object, key, &block)
       # p "+ rmext_observe", self, object, key
-      wop = ::RMExtensions::WeakObserverProxy.get(self)
       rmext_observe_passive(object, key, &block)
       block.call(object.send(key)) unless block.nil?
     end
@@ -144,6 +143,17 @@ module RMExtensions
         block.call(new_value) unless block.nil?
       end
       wop.observe(object, key, &b)
+    end
+
+    def rmext_unobserve(object, key)
+      wop = ::RMExtensions::WeakObserverProxy.get(self)
+      wop.unobserve(object, key)
+      wop.clear_empty_targets!
+    end
+
+    def rmext_unobserve_all
+      wop = ::RMExtensions::WeakObserverProxy.get(self)
+      wop.unobserve_all
     end
 
     def rmext_on_dealloc(&block)
@@ -280,8 +290,20 @@ module RMExtensions
         self.class.weak_observer_map.delete(strong_object_id)
       }
     end
+    def clear_empty_targets!
+      return if @targets.nil?
+      @targets.each_pair do |target, key_paths|
+        if !key_paths || key_paths.size == 0
+          @targets.delete(target)
+        end
+      end
+      nil
+    end
     def inspect
       "#{strong_class_name}:#{strong_object_id}"
+    end
+    def targets
+      @targets
     end
     def self.weak_observer_map
       Dispatch.once { $weak_observer_map = {} }
