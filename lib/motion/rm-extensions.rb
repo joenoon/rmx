@@ -3,30 +3,13 @@ module RMExtensions
   # this module is included on Object, so these methods are available from anywhere in your code.
   module ObjectExtensions
 
-    # get a pointer for a symbol, which can be used as a key.
-    # the hash lookup table is kept per instance and not global so as objects dealloc,
-    # these mappings get freed.
-    def rmext_pointer_for_symbol(sym)
-      @rmext_pointers_for_symbols ||= {}
-      @rmext_pointers_for_symbols[sym] ||= begin
-        ptr = Pointer.new(:object)
-        ptr.assign(sym)
-        ptr
-      end
-      @rmext_pointers_for_symbols[sym]
-    end
-
     def rmext_weak_attr_accessor(*attrs)
       attrs.each do |attr|
         define_method(attr) do
-          ptr = rmext_pointer_for_symbol(attr.to_sym)
-          # p "weak_getter", attr, ptr
-          associatedValueForKey(ptr)
+          rmext_associatedValueForKey(attr.to_sym)
         end
         define_method("#{attr}=") do |val|
-          ptr = rmext_pointer_for_symbol(attr.to_sym)
-          # p "weak_setter", attr, ptr
-          weaklyAssociateValue(val, withKey:ptr)
+          rmext_weaklyAssociateValue(val, withKey: attr.to_sym)
           val
         end
       end
@@ -35,14 +18,10 @@ module RMExtensions
     def rmext_copy_attr_accessor(*attrs)
       attrs.each do |attr|
         define_method(attr) do
-          ptr = rmext_pointer_for_symbol(attr.to_sym)
-          # p "copy_getter", attr, ptr
-          associatedValueForKey(ptr)
+          rmext_associatedValueForKey(attr.to_sym)
         end
         define_method("#{attr}=") do |val|
-          ptr = rmext_pointer_for_symbol(attr.to_sym)
-          # p "copy_setter", attr, ptr
-          associateCopyOfValue(val, withKey:ptr)
+          rmext_associateCopyOfValue(val, withKey: attr.to_sym)
           val
         end
       end

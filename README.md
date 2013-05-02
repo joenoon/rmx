@@ -8,7 +8,9 @@ Extensions and helpers for dealing with various areas of rubymotion:
 - retaining objects through async procedures
 - weak attr_accessors
 
-Currently depends on bubblewrap and BlocksKit.
+Currently depends on bubblewrap.
+
+AssociatedObject objc runtime taken from BlocksKit, modified to work with rubymotion.
 
 ## Installation
 
