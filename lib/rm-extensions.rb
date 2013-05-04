@@ -5,8 +5,16 @@ unless defined?(Motion::Project::Config)
 end
 
 Motion::Project::App.setup do |app|
-  Dir.glob(File.join(File.dirname(__FILE__), 'motion/**/*.rb')).each do |file|
-    app.files.unshift(file)
+  %w(
+    util
+    retention
+    accessors
+    deallocation
+    context
+    observation
+    queues
+  ).reverse.each do |x|
+    app.files.unshift(File.join(File.dirname(__FILE__), "motion/#{x}.rb"))
   end
   app.vendor_project(File.join(File.dirname(__FILE__), '../ext'), :static)
 end
