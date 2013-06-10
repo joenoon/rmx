@@ -39,6 +39,7 @@ module RMExtensions
           ::RMExtensions.retained_items.delete_at(::RMExtensions.retained_items.index(self) || ::RMExtensions.retained_items.length)
         end
       end
+      alias_method :rmext_release!, :rmext_detach!
 
     end
 

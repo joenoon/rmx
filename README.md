@@ -237,7 +237,6 @@ And then execute:
     $ bundle
 
 * Currently depends on bubblewrap (for BW::KVO).
-* AssociatedObject objc runtime taken from BlocksKit, modified to work with rubymotion.
 
 Contributing
 -----------------
