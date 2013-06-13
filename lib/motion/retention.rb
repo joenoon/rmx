@@ -2,19 +2,15 @@ module RMExtensions
 
   # A retained array, which will hold other objects we want retained.
   def self.retained_items
-    # Dispatch.once { @retained_items = [] }
-    # @retained_items
-    # FIXME: http://hipbyte.myjetbrains.com/youtrack/issue/RM-134
-    @retained_items ||= []
+    Dispatch.once { @retained_items = [] }
+    @retained_items
   end
 
   # A serial queue to perform all retain/detach operations on, to ensure we are always modifying
   # +retained_items+ on the same thread.
   def self.retains_queue
-    # Dispatch.once { @retains_queue = Dispatch::Queue.new("#{NSBundle.mainBundle.bundleIdentifier}.rmext_retains_queue") }
-    # @retains_queue
-    # FIXME: http://hipbyte.myjetbrains.com/youtrack/issue/RM-134
-    @retains_queue ||= Dispatch::Queue.new("#{NSBundle.mainBundle.bundleIdentifier}.rmext_retains_queue")
+    Dispatch.once { @retains_queue = Dispatch::Queue.new("#{NSBundle.mainBundle.bundleIdentifier}.rmext_retains_queue") }
+    @retains_queue
   end
 
   module ObjectExtensions
