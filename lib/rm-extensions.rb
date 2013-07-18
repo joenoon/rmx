@@ -7,10 +7,8 @@ end
 Motion::Project::App.setup do |app|
   %w(
     util
-    retention
     accessors
     deallocation
-    context
     observation
     queues
   ).reverse.each do |x|

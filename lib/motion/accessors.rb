@@ -4,10 +4,8 @@ module RMExtensions
 
     module Accessors
 
-      # creates an +attr_accessor+ like behavior, but the objects are stored with
-      # a weak reference (OBJC_ASSOCIATION_ASSIGN).  useful to avoid retain cycles
-      # when you want to have access to an object in a place that isnt responsible
-      # for that object's lifecycle.
+      # creates an +attr_accessor+ like behavior, but the objects are
+      # stored with a WeakRef.
       # does not conform to KVO like attr_accessor does.
       def rmext_weak_attr_accessor(*attrs)
         attrs.each do |attr|
