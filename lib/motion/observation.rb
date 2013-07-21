@@ -4,6 +4,10 @@ module RMExtensions
 
     module Observation
 
+      def rmext_observation_proxy
+        @rmext_observation_proxy ||= ObservationProxy.new(self.inspect)
+      end
+
       # observe an object.key. takes a block that will be called with the
       # new value upon change.
       #
@@ -11,8 +15,7 @@ module RMExtensions
       #   p "name is #{val}"
       # end
       def rmext_observe_passive(object, key, &block)
-        @__observation_proxy__ ||= ObservationProxy.new
-        @__observation_proxy__.observe(object, key, &block)
+        rmext_observation_proxy.observe(object, key, &block)
       end
 
       # like +rmext_observe_passive+ but additionally fires the callback immediately.
@@ -23,38 +26,37 @@ module RMExtensions
 
       # unobserve an existing observation
       def rmext_unobserve(object, key)
-        if @__observation_proxy__
-          @__observation_proxy__.unobserve(object, key)
+        if @rmext_observation_proxy
+          @rmext_observation_proxy.unobserve(object, key)
         end
       end
 
       # unobserve all existing observations
       def rmext_unobserve_all
-        if @__observation_proxy__
-          @__observation_proxy__.unobserve_all
+        if @rmext_observation_proxy
+          @rmext_observation_proxy.unobserve_all
         end
       end
 
       def on(event, &block)
-        @__observation_proxy__ ||= ObservationProxy.new
-        @__observation_proxy__.on(event, &block)
+        rmext_observation_proxy.on(event, &block)
       end
 
       def off(event, &block)
-        if @__observation_proxy__
-          @__observation_proxy__.off(event, &block)
+        if @rmext_observation_proxy
+          @rmext_observation_proxy.off(event, &block)
         end
       end
 
       def off_all
-        if @__observation_proxy__
-          @__observation_proxy__.off_all
+        if @rmext_observation_proxy
+          @rmext_observation_proxy.off_all
         end
       end
 
       def trigger(event, *args)
-        if @__observation_proxy__
-          @__observation_proxy__.trigger(event, *args)
+        if @rmext_observation_proxy
+          @rmext_observation_proxy.trigger(event, *args)
         end
       end
 
@@ -69,36 +71,35 @@ module RMExtensions
     COLLECTION_OPERATIONS = [ NSKeyValueChangeInsertion, NSKeyValueChangeRemoval, NSKeyValueChangeReplacement ]
     DEFAULT_OPTIONS = NSKeyValueObservingOptionNew
 
-    def initialize
-      @object_map = {}
+    def initialize(desc)
+      @desc = desc
       @events = {}
       @targets = {}
+      # p "created #{self.inspect} for #{@desc}"
     end
 
     def dealloc
-      p "ObservationProxy dealloc!"
+      p "dealloc #{self.inspect} for #{@desc}"
       unobserve_all
       off_all
       super
     end
 
     def observe(target, key_path, &block)
-      target_id = object_id_for_object(target)
-      target.addObserver(self, forKeyPath:key_path, options:DEFAULT_OPTIONS, context:nil) unless registered?(target_id, key_path)
-      add_observer_block(target_id, key_path, &block)
+      target.addObserver(self, forKeyPath:key_path, options:DEFAULT_OPTIONS, context:nil) unless registered?(target, key_path)
+      add_observer_block(target, key_path, &block)
     end
 
     def unobserve(target, key_path)
-      target_id = object_id_for_object(target)
-      return unless registered?(target_id, key_path)
+      return unless registered?(target, key_path)
       target.removeObserver(self, forKeyPath:key_path)
-      remove_observer_block(target_id, key_path)
+      remove_observer_block(target, key_path)
     end
 
-    def remove_observer_block(target_id, key_path)
-      return if target_id.nil? || key_path.nil?
+    def remove_observer_block(target, key_path)
+      return if target.nil? || key_path.nil?
 
-      key_paths = @targets[target_id]
+      key_paths = @targets[target]
       if !key_paths.nil? && key_paths.has_key?(key_path.to_s)
         key_paths.delete(key_path.to_s)
       end
@@ -107,45 +108,33 @@ module RMExtensions
     def unobserve_all
       keys = @targets.keys.clone
       while keys.size > 0
-        k = keys.pop
-        t = @targets[k]
-        paths = t.keys.clone
+        target = keys.pop
+        target_hash = @targets[target]
+        paths = target_hash.keys.clone
         while paths.size > 0
           key_path = paths.pop
-          if target = object_for_object_id(k)
-            target.removeObserver(self, forKeyPath:key_path)
-          end
+          target.removeObserver(self, forKeyPath:key_path)
         end
       end
       @targets.clear
     end
 
-    def object_id_for_object(object)
-      @object_map[object.object_id] = object
-      object.object_id
+    def registered?(target, key_path)
+      !target.nil? && !@targets[target].nil? && @targets[target].has_key?(key_path.to_s)
     end
 
-    def object_for_object_id(obj_id)
-      @object_map[obj_id]
-    end
-
-    def registered?(target_id, key_path)
-      !target_id.nil? && !@targets[target_id].nil? && @targets[target_id].has_key?(key_path.to_s)
-    end
-
-    def add_observer_block(target_id, key_path, &block)
-      return if target_id.nil? || key_path.nil? || block.nil?
-      @targets[target_id] ||= {}
-      @targets[target_id][key_path.to_s] ||= []
-      @targets[target_id][key_path.to_s] << block
+    def add_observer_block(target, key_path, &block)
+      return if target.nil? || key_path.nil? || block.nil?
+      @targets[target] ||= {}
+      @targets[target][key_path.to_s] ||= []
+      @targets[target][key_path.to_s] << block
     end
 
     # NSKeyValueObserving Protocol
 
     def observeValueForKeyPath(key_path, ofObject:target, change:change, context:context)
-      target_id = object_id_for_object(target)
-      return if target_id.nil?
-      key_paths = @targets[target_id] || {}
+      return if target.nil?
+      key_paths = @targets[target] || {}
       blocks = key_paths[key_path] || []
       blocks.each do |block|
         args = [ change[NSKeyValueChangeNewKey] ]

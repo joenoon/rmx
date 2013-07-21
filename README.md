@@ -3,7 +3,7 @@ RMExtensions
 
 #### Extensions and helpers for dealing with various areas of rubymotion.
 
-## Observation
+## Observation/KVO, Events
 
 #### Make observations without needing to clean up/unobserve
 
@@ -16,12 +16,18 @@ class MyViewController < UIViewController
       rmext_observe(@model, "name") do |val|
         p "name is #{val}"
       end
+      foo.on(:some_event) do |val|
+        p "some_event called with #{val.inspect}"
+      end
     end
+  end
+  def test_trigger
+    foo.trigger(:some_event, "hello!")
   end
 end
 ```
 
-Differences from BW::KVO:
+Differences from BW::KVO and BW::Reactor::Eventable:
 
 - No need to include a module in the class you wish to use it on
 - The default is to observe and immediately fire the supplied callback
@@ -29,7 +35,7 @@ Differences from BW::KVO:
 - the object observing is not retained, and when it is deallocated, the observation
   will be removed automatically for you. there is typically no need to clean up
   and unobserve in viewWillDisappear, or similar.
-- the observation actually happens on an unretained proxy object
+- the observation actually happens on a proxy object
 
 
 ## Accessors
@@ -72,13 +78,10 @@ end
 
 # now you can verify the controller gets deallocated by calling #add_view_controller
 # and then popping it off the navigationController
-
-# you should be careful not to create the block inline, since it could easily create a retain cycle
-# depending what other objects are in scope.
 ```
 ## Queues
 
-#### Wraps GCD to avoid complier issues with blocks and also ensures the block passed is retained until executed on the queue:
+#### Wraps GCD:
 
 ```ruby
 # note +i+ will appear in order, and the thread will never change (main)
