@@ -38,23 +38,27 @@ module RMExtensions
         end
       end
 
-      def on(event, &block)
+      # register a callback when an event is trigger on this object
+      def rmext_on(event, &block)
         rmext_observation_proxy.on(event, &block)
       end
 
-      def off(event, &block)
+      # remove a specific callback for an event on this object
+      def rmext_off(event, &block)
         if @rmext_observation_proxy
           @rmext_observation_proxy.off(event, &block)
         end
       end
 
-      def off_all
+      # remove all event callbacks on this object
+      def rmext_off_all
         if @rmext_observation_proxy
           @rmext_observation_proxy.off_all
         end
       end
 
-      def trigger(event, *args)
+      # trigger an event with args on this object
+      def rmext_trigger(event, *args)
         if @rmext_observation_proxy
           @rmext_observation_proxy.trigger(event, *args)
         end
@@ -78,8 +82,9 @@ module RMExtensions
       # p "created #{self.inspect} for #{@desc}"
     end
 
+    # clean up on dellocation
     def dealloc
-      p "dealloc #{self.inspect} for #{@desc}"
+      # p "dealloc #{self.inspect} for #{@desc}"
       unobserve_all
       off_all
       super
