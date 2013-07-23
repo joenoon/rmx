@@ -16,13 +16,13 @@ class MyViewController < UIViewController
       rmext_observe(@model, "name") do |val|
         p "name is #{val}"
       end
-      foo.on(:some_event) do |val|
+      foo.rmext_on(:some_event) do |val|
         p "some_event called with #{val.inspect}"
       end
     end
   end
   def test_trigger
-    foo.trigger(:some_event, "hello!")
+    foo.rmext_trigger(:some_event, "hello!")
   end
 end
 ```
@@ -30,17 +30,16 @@ end
 Differences from BW::KVO and BW::Reactor::Eventable:
 
 - No need to include a module in the class you wish to use it on
-- The default is to observe and immediately fire the supplied callback
-- The callback only takes one argument, the new value
-- the object observing is not retained, and when it is deallocated, the observation
-  will be removed automatically for you. there is typically no need to clean up
-  and unobserve in viewWillDisappear, or similar.
-- the observation actually happens on a proxy object
+- the observation happens on a proxy object
+- KVO: The default is to observe and immediately fire the supplied callback
+- KVO: The callback only takes one argument, the new value
+- KVO: the object observing is not retained, and when it is deallocated, the observation
+  will be removed automatically for you. there is typically no need to clean up manually
 
 
 ## Accessors
 
-#### weak attr_accessors when you need to avoid retain-cycles:
+#### weak attr_accessors:
 
 ```ruby
 
@@ -53,7 +52,6 @@ class MyViewController < UIViewController
     super.tap do
       v = MyView.alloc.initWithFrame(CGRectZero)
       view.addSubview(v)
-      # if delegate was a normal attr_accessor, this controller could never be deallocated
       v.delegate = self
     end
   end
@@ -61,24 +59,6 @@ end
 
 ```
 
-## Deallocation
-
-#### watch for an object to deallocate, and execute a callback:
-
-```ruby
-def add_view_controller
-  controller = UIViewController.alloc.init
-  controller.rmext_on_dealloc(&test_dealloc_proc)
-  navigationController.pushViewController(controller, animated: true)
-end
-
-def test_dealloc_proc
-  proc { |x| p "it deallocated!" }
-end
-
-# now you can verify the controller gets deallocated by calling #add_view_controller
-# and then popping it off the navigationController
-```
 ## Queues
 
 #### Wraps GCD:
