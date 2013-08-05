@@ -144,7 +144,7 @@ module RMExtensions
       blocks.each do |block|
         args = [ change[NSKeyValueChangeNewKey] ]
         args << change[NSKeyValueChangeIndexesKey] if collection?(change)
-        block.call(*args)
+        rmext_on_main_q { block.call(*args) }
       end
     end
 
