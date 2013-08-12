@@ -64,6 +64,13 @@ module RMExtensions
         end
       end
 
+      # remove all observations and event callbacks on this object
+      def rmext_cleanup
+        if @rmext_observation_proxy
+          @rmext_observation_proxy.cleanup
+        end
+      end
+
     end
 
   end
@@ -85,9 +92,14 @@ module RMExtensions
     # clean up on dellocation
     def dealloc
       # p "dealloc #{self.inspect} for #{@desc}"
+      cleanup
+      super
+    end
+
+    def cleanup
       unobserve_all
       off_all
-      super
+      true
     end
 
     def observe(target, key_path, &block)
