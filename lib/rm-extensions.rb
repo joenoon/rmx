@@ -6,6 +6,7 @@ end
 
 Motion::Project::App.setup do |app|
   %w(
+    layout
     util
     accessors
     observation
