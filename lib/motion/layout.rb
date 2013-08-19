@@ -16,11 +16,15 @@ module RMExtensions
       nil => NSLayoutAttributeNotAnAttribute
     }
 
+    ATTRIBUTE_LOOKUP_INVERSE = ATTRIBUTE_LOOKUP.invert
+
     RELATED_BY_LOOKUP = {
       "<=" => NSLayoutRelationLessThanOrEqual,
       "==" => NSLayoutRelationEqual,
       ">=" => NSLayoutRelationGreaterThanOrEqual
     }
+
+    RELATED_BY_LOOKUP_INVERSE = RELATED_BY_LOOKUP.invert
 
     PRIORITY_LOOKUP = {
       "required" => UILayoutPriorityRequired, # = 1000
@@ -28,6 +32,8 @@ module RMExtensions
       "low" => UILayoutPriorityDefaultLow, # = 250
       "fit" => UILayoutPriorityFittingSizeLevel # = 50
     }
+
+    PRIORITY_LOOKUP_INVERSE = PRIORITY_LOOKUP.invert
 
     AXIS_LOOKUP = {
       "h" => UILayoutConstraintAxisHorizontal,
@@ -58,18 +64,14 @@ module RMExtensions
       @subviews
     end
 
-    def eqs(str, debug=false)
+    def eqs(str)
       str.split("\n").map(&:strip).select { |x| !x.empty? }.map do |line|
-        eq(line, debug)
+        eq(line)
       end
     end
 
-    def eq?(str)
-      eq(str, true)
-    end
-
     # Constraints are of the form "view1.attr1 <relation> view2.attr2 * multiplier + constant @ priority"
-    def eq(str, debug=false)
+    def eq(str)
       item = nil
       item_attribute = nil
       related_by = nil
@@ -78,7 +80,9 @@ module RMExtensions
       multiplier = nil
       constant = nil
       
-      parts = str.split(" ").select { |x| !x.empty? }
+      parts = str.split("#", 2).first.split(" ").select { |x| !x.empty? }
+
+      debug = parts.delete("?")
 
       # first part should always be view1.attr1
       part = parts.shift
@@ -107,9 +111,9 @@ module RMExtensions
         parts.delete_at(idx)
       end
 
-      # look for multipler
+      # look for multiplier
       if idx = parts.index("*")
-        multipler = parts[idx + 1]
+        multiplier = parts[idx + 1]
         parts.delete_at(idx)
         parts.delete_at(idx)
       end
@@ -135,21 +139,6 @@ module RMExtensions
           to_item = "view"
           to_item_attribute = item_attribute
         end
-      end
-
-      debug_hash = nil
-
-      if debug
-        debug_hash = {
-          :item => item,
-          :item_attribute => item_attribute,
-          :related_by => related_by,
-          :to_item => to_item,
-          :to_item_attribute => to_item_attribute,
-          :multiplier => multiplier,
-          :constant => constant,
-          :priority => priority
-        }
       end
 
       # normalize
@@ -186,18 +175,18 @@ module RMExtensions
       errors.push("Invalid attr2: #{to_item_attribute}") unless res_to_item_attribute
 
       if errors.size > 0 || debug
-        puts "======================== constraint debug ========================"
-        puts "given:"
-        puts "  #{str}"
-        puts "interpreted:"
-        puts "  item:                #{item}"
-        puts "  item_attribute:      #{item_attribute}"
-        puts "  related_by:          #{related_by}"
-        puts "  to_item:             #{to_item}"
-        puts "  to_item_attribute:   #{to_item_attribute}"
-        puts "  multiplier:          #{multiplier}"
-        puts "  constant:            #{constant}"
-        puts "  priority:            #{priority}"
+        p "======================== constraint debug ========================"
+        p "given:"
+        p "  #{str}"
+        p "interpreted:"
+        p "  item:                #{item}"
+        p "  item_attribute:      #{item_attribute}"
+        p "  related_by:          #{related_by}"
+        p "  to_item:             #{to_item}"
+        p "  to_item_attribute:   #{to_item_attribute}"
+        p "  multiplier:          #{multiplier}"
+        p "  constant:            #{constant}"
+        p "  priority:            #{priority}"
       end
 
       if errors.size > 0
@@ -216,12 +205,25 @@ module RMExtensions
       end
 
       if debug
-        puts "implemented:"
-        puts "  #{constraint.description}"
+        p "implemented:"
+        p "  #{constraint.description}"
       end
 
       @view.addConstraint(constraint)
       constraint
+    end
+
+    def describe(constraint)
+      subviews_inverse = subviews.invert
+      item = subviews_inverse[constraint.firstItem]
+      item_attribute = ATTRIBUTE_LOOKUP_INVERSE[constraint.firstAttribute]
+      related_by = RELATED_BY_LOOKUP_INVERSE[constraint.relation]
+      to_item = subviews_inverse[constraint.secondItem]
+      to_item_attribute = ATTRIBUTE_LOOKUP_INVERSE[constraint.secondAttribute]
+      multiplier = constraint.multiplier
+      constant = constraint.constant
+      priority = PRIORITY_LOOKUP_INVERSE[constraint.priority] || constraint.priority
+      "#{item}.#{item_attribute} #{related_by} #{to_item}.#{to_item_attribute} * #{multiplier} + #{constant} @ #{priority}"
     end
 
   end
