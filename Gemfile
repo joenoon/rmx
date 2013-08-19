@@ -1,4 +1,7 @@
 source 'https://rubygems.org'
 
-# Specify your gem's dependencies in rm-extensions.gemspec
+group :test, :development do
+  gem 'rake'
+end
+
 gemspec
