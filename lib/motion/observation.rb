@@ -5,7 +5,7 @@ module RMExtensions
     module Observation
 
       def rmext_observation_proxy
-        @rmext_observation_proxy ||= ObservationProxy.new(self.inspect)
+        @rmext_observation_proxy ||= ObservationProxy.new(self)
       end
 
       # observe an object.key. takes a block that will be called with the
@@ -82,21 +82,30 @@ module RMExtensions
     COLLECTION_OPERATIONS = [ NSKeyValueChangeInsertion, NSKeyValueChangeRemoval, NSKeyValueChangeReplacement ]
     DEFAULT_OPTIONS = NSKeyValueObservingOptionNew
 
-    def initialize(desc)
-      @desc = desc
+    def initialize(obj)
+      obj.rmext_on_dealloc do |x|
+        cleanup
+      end
+      @desc = obj.inspect
       @events = {}
       @targets = {}
-      # p "created #{self.inspect} for #{@desc}"
+      if ::RMExtensions.debug?
+        p "created ObservationProxy for #{@desc}"
+      end
     end
 
-    # clean up on dellocation
     def dealloc
-      # p "dealloc #{self.inspect} for #{@desc}"
-      cleanup
+      @did_dealloc = true
+      if ::RMExtensions.debug?
+        p "dealloc ObservationProxy for #{@desc}"
+      end
       super
     end
 
     def cleanup
+      if ::RMExtensions.debug?
+        p "cleanup #{@desc}"
+      end
       unobserve_all
       off_all
       true
@@ -150,13 +159,16 @@ module RMExtensions
     # NSKeyValueObserving Protocol
 
     def observeValueForKeyPath(key_path, ofObject:target, change:change, context:context)
-      return if target.nil?
-      key_paths = @targets[target] || {}
-      blocks = key_paths[key_path] || []
-      blocks.each do |block|
-        args = [ change[NSKeyValueChangeNewKey] ]
-        args << change[NSKeyValueChangeIndexesKey] if collection?(change)
-        rmext_on_main_q { block.call(*args) }
+      rmext_on_main_q do
+        next if @did_dealloc
+        next if target.nil?
+        key_paths = @targets[target] || {}
+        blocks = key_paths[key_path] || []
+        blocks.each do |block|
+          args = [ change[NSKeyValueChangeNewKey] ]
+          args << change[NSKeyValueChangeIndexesKey] if collection?(change)
+          block.call(*args)
+        end
       end
     end
 

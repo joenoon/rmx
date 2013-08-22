@@ -1,5 +1,13 @@
 module RMExtensions
 
+  def self.debug?
+    !!@debug
+  end
+
+  def self.debug!(bool=true)
+    @debug = bool
+  end
+
   module ObjectExtensions
 
     module Util
