@@ -9,6 +9,7 @@ Motion::Project::App.setup do |app|
     layout
     util
     accessors
+    deallocation
     observation
     queues
   ).reverse.each do |x|
