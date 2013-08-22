@@ -46,22 +46,25 @@ module RMExtensions
       end
     end
 
-    def view(view=nil)
-      if view
-        @view = view
-      end
-      @view
+    def view(view)
+      @view = view
     end
 
-    def subviews(subviews=nil)
-      if subviews
-        @subviews = subviews
-        @subviews.values.each do |subview|
-          subview.translatesAutoresizingMaskIntoConstraints = false
-          @view.addSubview(subview)
-        end
+    def view=(v)
+      view(v)
+    end
+
+    def subviews(subviews)
+      @subviews = subviews
+      @subviews.values.each do |subview|
+        subview.translatesAutoresizingMaskIntoConstraints = false
+        @view.addSubview(subview)
       end
       @subviews
+    end
+
+    def subviews=(views)
+      subviews(views)
     end
 
     def eqs(str)
@@ -143,16 +146,8 @@ module RMExtensions
 
       # normalize
 
-      res_item = item == "view" ? @view : @subviews[item]
-      res_item_attribute = ATTRIBUTE_LOOKUP[item_attribute]
-      res_related_by = RELATED_BY_LOOKUP[related_by]
-      res_to_item = if to_item
-        to_item == "view" ? @view : @subviews[to_item]
-      end
-      res_to_item_attribute = ATTRIBUTE_LOOKUP[to_item_attribute]
-      res_multiplier = multiplier ? Float(multiplier) : 1.0
+      res_item = view_for_item(item)
       res_constant = constant ? Float(PRIORITY_LOOKUP[constant] || constant) : 0.0
-      res_priority = priority ? Integer(PRIORITY_LOOKUP[priority] || priority) : nil
 
       if res_item
         case item_attribute
@@ -166,6 +161,13 @@ module RMExtensions
           return res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
         end
       end
+
+      res_item_attribute = ATTRIBUTE_LOOKUP[item_attribute]
+      res_related_by = RELATED_BY_LOOKUP[related_by]
+      res_to_item = to_item ? view_for_item(to_item) : nil
+      res_to_item_attribute = ATTRIBUTE_LOOKUP[to_item_attribute]
+      res_multiplier = multiplier ? Float(multiplier) : 1.0
+      res_priority = priority ? Integer(PRIORITY_LOOKUP[priority] || priority) : nil
 
       errors = []
       errors.push("Invalid view1: #{item}") unless res_item
@@ -224,6 +226,16 @@ module RMExtensions
       constant = constraint.constant
       priority = PRIORITY_LOOKUP_INVERSE[constraint.priority] || constraint.priority
       "#{item}.#{item_attribute} #{related_by} #{to_item}.#{to_item_attribute} * #{multiplier} + #{constant} @ #{priority}"
+    end
+
+    private
+
+    def view_for_item(item)
+      if item == "view"
+        @view
+      elsif v = (@subviews && @subviews[item])
+        v
+      end
     end
 
   end
