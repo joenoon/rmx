@@ -27,6 +27,7 @@ module RMExtensions
     RELATED_BY_LOOKUP_INVERSE = RELATED_BY_LOOKUP.invert
 
     PRIORITY_LOOKUP = {
+      "max" => UILayoutPriorityRequired, # = 1000
       "required" => UILayoutPriorityRequired, # = 1000
       "high" => UILayoutPriorityDefaultHigh, # = 750
       "low" => UILayoutPriorityDefaultLow, # = 250
@@ -41,9 +42,14 @@ module RMExtensions
     }
 
     def initialize
+      @visible_items = []
       if block_given?
         yield self
       end
+    end
+
+    def clear!
+      @view.removeConstraints(@view.constraints)
     end
 
     def view(view)
@@ -75,16 +81,17 @@ module RMExtensions
 
     # Constraints are of the form "view1.attr1 <relation> view2.attr2 * multiplier + constant @ priority"
     def eq(str)
+      parts = str.split("#", 2).first.split(" ").select { |x| !x.empty? }
+      return if parts.empty?
+
       item = nil
       item_attribute = nil
       related_by = nil
       to_item = nil
       to_item_attribute = nil
-      multiplier = nil
-      constant = nil
+      multiplier = 1.0
+      constant = 0.0
       
-      parts = str.split("#", 2).first.split(" ").select { |x| !x.empty? }
-
       debug = parts.delete("?")
 
       # first part should always be view1.attr1
@@ -146,8 +153,12 @@ module RMExtensions
 
       # normalize
 
+      if item == "last_visible"
+        item = @visible_items.first || "view"
+      end
+
       res_item = view_for_item(item)
-      res_constant = constant ? Float(PRIORITY_LOOKUP[constant] || constant) : 0.0
+      res_constant = Float(PRIORITY_LOOKUP[constant] || constant)
 
       if res_item
         case item_attribute
@@ -162,11 +173,15 @@ module RMExtensions
         end
       end
 
+      if to_item == "last_visible"
+        to_item = @visible_items.detect { |x| x != item } || "view"
+      end
+
       res_item_attribute = ATTRIBUTE_LOOKUP[item_attribute]
       res_related_by = RELATED_BY_LOOKUP[related_by]
       res_to_item = to_item ? view_for_item(to_item) : nil
       res_to_item_attribute = ATTRIBUTE_LOOKUP[to_item_attribute]
-      res_multiplier = multiplier ? Float(multiplier) : 1.0
+      res_multiplier = Float(multiplier)
       res_priority = priority ? Integer(PRIORITY_LOOKUP[priority] || priority) : nil
 
       errors = []
@@ -188,11 +203,15 @@ module RMExtensions
         p "  to_item_attribute:   #{to_item_attribute}"
         p "  multiplier:          #{multiplier}"
         p "  constant:            #{constant}"
-        p "  priority:            #{priority}"
+        p "  priority:            #{priority || "required"}"
       end
 
       if errors.size > 0
         raise(errors.join(", "))
+      end
+
+      unless res_item.hidden?
+        @visible_items.unshift(item)
       end
 
       constraint = NSLayoutConstraint.constraintWithItem(res_item,
