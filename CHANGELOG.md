@@ -1,3 +1,16 @@
+## 0.1.9
+
+[Commit history](https://github.com/joenoon/rm-extensions/compare/v0.1.8...v0.1.9)
+
+* Util: Added #rmext_ivar, which is a shortcut to instance_variable_get/instance_variable_set
+* Layout: Added #reopen to yield the instance to a block for further processing
+* Layout: Added an internal "constraint table" to keep track of normalized equations and
+  NSLayoutConstraint objects.  equations can now be modified simply by re-applying the same
+  equation with a different constant.
+* Layout: Added #xeq to remove a constraint by equation
+* Layout: Added #remove(constraint(s)) to remove NSLayoutConstraint obects from the view
+  and also from the internal constraint table.
+
 ## 0.1.8
 
 [Commit history](https://github.com/joenoon/rm-extensions/compare/v0.1.7...v0.1.8)
