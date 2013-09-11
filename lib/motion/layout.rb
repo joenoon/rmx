@@ -41,15 +41,49 @@ module RMExtensions
       "v" => UILayoutConstraintAxisVertical
     }
 
+    # keeps track of views that are not #hidden? as constraints are built, so the
+    # special `last_visible` view name can be used in equations.
+    # exposed for advanced layout needs.
+    attr_accessor :visible_items
+
+    # Example:
+    # RMExtensions::Layout.new do |layout|
+    #   ...
+    # end
     def initialize
       @visible_items = []
+      @constraints = {}
       if block_given?
         yield self
       end
     end
 
+    # reopens the RMExtensions::Layout instance for additional processing, ex:
+    #   @layout.reopen do |layout|
+    #     ...
+    #   end
+    # note: you would need to store your instance somewhere on creation to be able to reopen it later, ex:
+    #   @layout = RMExtensions::Layout.new do |layout|
+    #     ...
+    #   end
+    def reopen
+      if block_given?
+        yield self
+      end
+      self
+    end
+
     def clear!
       @view.removeConstraints(@view.constraints)
+    end
+
+    def remove(constraint)
+      constraints = [ constraint ].flatten
+      @view.removeConstraints(constraints)
+      @constraints.keys.each do |key|
+        @constraints.delete(key) if constraints.include?(@constraints.fetch(key))
+      end
+      true
     end
 
     def view(view)
@@ -73,14 +107,17 @@ module RMExtensions
       subviews(views)
     end
 
+    # takes a string one or more equations separated by newlines and
+    # processes each.  returns an array of constraints
     def eqs(str)
       str.split("\n").map(&:strip).select { |x| !x.empty? }.map do |line|
         eq(line)
-      end
+      end.compact
     end
 
     # Constraints are of the form "view1.attr1 <relation> view2.attr2 * multiplier + constant @ priority"
-    def eq(str)
+    # processes one equation string
+    def eq(str, remove=false)
       parts = str.split("#", 2).first.split(" ").select { |x| !x.empty? }
       return if parts.empty?
 
@@ -191,6 +228,8 @@ module RMExtensions
       errors.push("Invalid view2: #{to_item}") if to_item && !res_to_item
       errors.push("Invalid attr2: #{to_item_attribute}") unless res_to_item_attribute
 
+      internal_ident = "#{item}.#{item_attribute} #{related_by} #{to_item}.#{to_item_attribute} * #{multiplier} @ #{priority}"
+
       if errors.size > 0 || debug
         p "======================== constraint debug ========================"
         p "given:"
@@ -204,6 +243,7 @@ module RMExtensions
         p "  multiplier:          #{multiplier}"
         p "  constant:            #{constant}"
         p "  priority:            #{priority || "required"}"
+        p "  internal_ident:      #{internal_ident}"
       end
 
       if errors.size > 0
@@ -214,15 +254,39 @@ module RMExtensions
         @visible_items.unshift(item)
       end
 
-      constraint = NSLayoutConstraint.constraintWithItem(res_item,
-         attribute:res_item_attribute,
-         relatedBy:res_related_by,
-            toItem:res_to_item,
-         attribute:res_to_item_attribute,
-        multiplier:res_multiplier,
-          constant:res_constant)
-      if res_priority
-        constraint.priority = res_priority
+      if remove
+        if constraint = @constraints[internal_ident]
+          if debug
+            p "status:"
+            p "  existing (for removal)"
+          end
+          @view.removeConstraint(constraint)
+        else
+          raise "RMExtensions::Layout could not find constraint to remove for internal_ident: `#{internal_ident}` (note: this is an internal representation of the constraint, not the exact string given).  Make sure the constraint was created first."
+        end
+      elsif constraint = @constraints[internal_ident]
+        if debug
+          p "status:"
+          p "  existing (for modification)"
+        end
+        constraint.constant = res_constant
+      else
+        constraint = NSLayoutConstraint.constraintWithItem(res_item,
+           attribute:res_item_attribute,
+           relatedBy:res_related_by,
+              toItem:res_to_item,
+           attribute:res_to_item_attribute,
+          multiplier:res_multiplier,
+            constant:res_constant)
+        if debug
+          p "status:"
+          p "  created"
+        end
+        @constraints[internal_ident] = constraint
+        if res_priority
+          constraint.priority = res_priority
+        end
+        @view.addConstraint(constraint)
       end
 
       if debug
@@ -230,10 +294,17 @@ module RMExtensions
         p "  #{constraint.description}"
       end
 
-      @view.addConstraint(constraint)
       constraint
     end
 
+    # removes the constraint matching equation string.  constant is not considered.
+    # if no matching constraint is found, it will raise an exception.
+    def xeq(str)
+      eq(str, true)
+    end
+
+    # transforms an NSLayoutConstraint into a string.  this string is for debugging and produces
+    # a verbose translation.  its not meant to be copied directly as an equation.
     def describe(constraint)
       subviews_inverse = subviews.invert
       item = subviews_inverse[constraint.firstItem]
