@@ -1,3 +1,10 @@
+## 0.1.10
+
+[Commit history](https://github.com/joenoon/rm-extensions/compare/v0.1.9...v0.1.10)
+
+* Layout: compact constraint(s) passed to #remove so a nil can be passed to reduce code
+* Layout: adjust how to describe existing constraints
+
 ## 0.1.9
 
 [Commit history](https://github.com/joenoon/rm-extensions/compare/v0.1.8...v0.1.9)

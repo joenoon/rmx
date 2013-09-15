@@ -78,7 +78,7 @@ module RMExtensions
     end
 
     def remove(constraint)
-      constraints = [ constraint ].flatten
+      constraints = [ constraint ].flatten.compact
       @view.removeConstraints(constraints)
       @constraints.keys.each do |key|
         @constraints.delete(key) if constraints.include?(@constraints.fetch(key))
@@ -303,19 +303,37 @@ module RMExtensions
       eq(str, true)
     end
 
+    def describe_constraint(constraint)
+      self.class.describe_constraint(@subviews, constraint)
+    end
+
+    def describe_view
+      self.class.describe_view(@subviews, @view)
+    end
+
     # transforms an NSLayoutConstraint into a string.  this string is for debugging and produces
     # a verbose translation.  its not meant to be copied directly as an equation.
-    def describe(constraint)
+    # pass the subviews hash just as you would to Layout#subviews=, followed by the NSLayoutConstraint
+    def self.describe_constraint(subviews, constraint)
       subviews_inverse = subviews.invert
-      item = subviews_inverse[constraint.firstItem]
+      item = subviews_inverse[constraint.firstItem] || "view"
       item_attribute = ATTRIBUTE_LOOKUP_INVERSE[constraint.firstAttribute]
       related_by = RELATED_BY_LOOKUP_INVERSE[constraint.relation]
-      to_item = subviews_inverse[constraint.secondItem]
+      to_item = subviews_inverse[constraint.secondItem] || "view"
       to_item_attribute = ATTRIBUTE_LOOKUP_INVERSE[constraint.secondAttribute]
       multiplier = constraint.multiplier
       constant = constraint.constant
       priority = PRIORITY_LOOKUP_INVERSE[constraint.priority] || constraint.priority
-      "#{item}.#{item_attribute} #{related_by} #{to_item}.#{to_item_attribute} * #{multiplier} + #{constant} @ #{priority}"
+      "#{constraint.description}\n#{item}.#{item_attribute} #{related_by} #{to_item}.#{to_item_attribute} * #{multiplier} + #{constant} @ #{priority}"
+    end
+
+    # transforms a view's NSLayoutConstraints into strings.
+    # pass the subviews hash just as you would to Layout#subviews=, followed by the view to
+    # describe
+    def self.describe_view(subviews, view)
+      view.constraints.map do |constraint|
+        describe_constraint(subviews, constraint)
+      end.join("\n")
     end
 
     private
