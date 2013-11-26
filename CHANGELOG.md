@@ -1,3 +1,9 @@
+## 0.2.0
+
+[Commit history](https://github.com/joenoon/rm-extensions/compare/v0.1.10...v0.2.0)
+
+* Experimental changes.  Changelog to move to wiki soon.
+
 ## 0.1.10
 
 [Commit history](https://github.com/joenoon/rm-extensions/compare/v0.1.9...v0.1.10)
