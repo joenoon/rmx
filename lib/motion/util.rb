@@ -31,6 +31,23 @@ module RMExtensions
         end
       end
 
+      def rmext_nil_instance_variables!
+        ivars = [] + instance_variables
+        while ivar = ivars.pop
+          instance_variable_set(ivar, nil)
+        end
+        true
+      end
+
+      def rmext_assign_debug_labels_to_ivars!
+        ivars = [] + instance_variables
+        while ivar = ivars.pop
+          val = instance_variable_get(ivar)
+          val.rmext_ivar(:debug_label, ivar)
+        end
+        true
+      end
+
     end
 
   end
