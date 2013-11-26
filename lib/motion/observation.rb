@@ -83,9 +83,6 @@ module RMExtensions
     DEFAULT_OPTIONS = NSKeyValueObservingOptionNew
 
     def initialize(obj)
-      obj.rmext_on_dealloc do |x|
-        cleanup
-      end
       @desc = obj.inspect
       @events = {}
       @targets = {}
@@ -96,6 +93,7 @@ module RMExtensions
 
     def dealloc
       @did_dealloc = true
+      cleanup
       if ::RMExtensions.debug?
         p "dealloc ObservationProxy for #{@desc}"
       end
@@ -127,7 +125,7 @@ module RMExtensions
 
       key_paths = @targets[target]
       if !key_paths.nil? && key_paths.has_key?(key_path.to_s)
-        key_paths.delete(key_path.to_s)
+        key_paths.removeObject(key_path.to_s)
       end
     end
 
@@ -142,7 +140,7 @@ module RMExtensions
           target.removeObserver(self, forKeyPath:key_path)
         end
       end
-      @targets.clear
+      @targets.removeAllObjects
     end
 
     def registered?(target, key_path)
@@ -152,8 +150,8 @@ module RMExtensions
     def add_observer_block(target, key_path, &block)
       return if target.nil? || key_path.nil? || block.nil?
       @targets[target] ||= {}
-      @targets[target][key_path.to_s] ||= []
-      @targets[target][key_path.to_s] << block
+      @targets[target][key_path.to_s] ||= NSHashTable.weakObjectsHashTable
+      @targets[target][key_path.to_s].addObject block
     end
 
     # NSKeyValueObserving Protocol
@@ -179,17 +177,17 @@ module RMExtensions
     def on(event, &block)
       return if event.nil? || block.nil?
       @events[event.to_s] ||= []
-      @events[event.to_s] << block
+      @events[event.to_s].addObject block
     end
 
     def off(event, &block)
       return if event.nil? || block.nil? || !@events.key?(event.to_s)
-      @events[event.to_s].delete_if { |b| b == block }
+      @events[event.to_s].removeObject block
       nil
     end
 
     def off_all
-      @events.clear
+      @events.removeAllObjects
     end
 
     def trigger(event, *args)
