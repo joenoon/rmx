@@ -104,9 +104,6 @@ module RMExtensions
     end
 
     def cleanup
-      if ::RMExtensions.debug?
-        p "cleanup ObservationProxy(#{@desc})"
-      end
       unobserve_all
       off_all
       true
@@ -160,11 +157,11 @@ module RMExtensions
     # NSKeyValueObserving Protocol
 
     def observeValueForKeyPath(key_path, ofObject:target, change:change, context:context)
-      m_desc = nil
-      if ::RMExtensions.debug?
-        m_desc = "~~> ObservationProxy(#{@desc})#observeValueForKeyPath(#{key_path}, ofObject:#{target.inspect.split(" ").first}>, ...)"
-        p "called", m_desc
-      end
+      # m_desc = nil
+      # if ::RMExtensions.debug?
+      #   m_desc = "~~> ObservationProxy(#{@desc})#observeValueForKeyPath(#{key_path}, ofObject:#{target.inspect.split(" ").first}>, ...)"
+      #   p "called", m_desc
+      # end
       action = proc do
         next if @did_dealloc
         next if target.nil?
@@ -173,9 +170,9 @@ module RMExtensions
         blocks = key_paths[key_path]
         next if blocks.nil?
         blocks = [] + blocks # get a new array that can be popped
-        if ::RMExtensions.debug?
-          p "blocks.size", blocks.size, m_desc
-        end
+        # if ::RMExtensions.debug?
+        #   p "blocks.size", blocks.size, m_desc
+        # end
         while blk = blocks.pop
           res = ObservationResponse.new
           res.context = @weak_object
@@ -189,14 +186,14 @@ module RMExtensions
         end
       end
       if NSThread.currentThread.isMainThread
-        if ::RMExtensions.debug?
-          p "inline execution", m_desc
-        end
+        # if ::RMExtensions.debug?
+        #   p "inline execution", m_desc
+        # end
         action.call
       else
-        if ::RMExtensions.debug?
-          p "dispatch execution", m_desc
-        end
+        # if ::RMExtensions.debug?
+        #   p "dispatch execution", m_desc
+        # end
         rmext_on_main_q(&action)
       end
     end
@@ -231,11 +228,11 @@ module RMExtensions
     end
 
     def trigger(event, value)
-      m_desc = nil
-      if ::RMExtensions.debug?
-        m_desc = "~~> ObservationProxy(#{@desc})#trigger(#{event}, #{value.inspect.split(" ").first }>)"
-        p "called", m_desc
-      end
+      # m_desc = nil
+      # if ::RMExtensions.debug?
+      #   m_desc = "~~> ObservationProxy(#{@desc})#trigger(#{event}, #{value.inspect.split(" ").first }>)"
+      #   p "called", m_desc
+      # end
       rmext_on_main_q do
         next if @did_dealloc
         next if event.nil?
@@ -249,9 +246,9 @@ module RMExtensions
           if context_events = @events.objectForKey(context)
             if event_blocks = context_events[event]
               blocks = [] + event_blocks
-              if ::RMExtensions.debug?
-                p "blocks.size", blocks.size, m_desc
-              end
+              # if ::RMExtensions.debug?
+              #   p "blocks.size", blocks.size, m_desc
+              # end
               while blk = blocks.pop
                 res = EventResponse.new
                 res.context = context
