@@ -151,6 +151,7 @@ module RMExtensions
       key_path = key_path.to_s
       @targets[target] ||= {}
       @targets[target][key_path] ||= []
+      block.weak!
       @targets[target][key_path].addObject block
     end
 
@@ -210,6 +211,7 @@ module RMExtensions
         context_event_blocks = []
         context_events.setObject(context_event_blocks, forKey:event)
       end
+      block.weak!
       context_event_blocks.addObject block
     end
 
