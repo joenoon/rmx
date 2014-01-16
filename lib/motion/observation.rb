@@ -34,12 +34,29 @@ module RMExtensions
         end
       end
 
-      # register a callback when an event is trigger on this object
+      # register a callback when an event is triggered on this object.
+      #
+      # `inContext` should be passed the object context that the block was originally
+      # created in.  if you are writing the block inline, this would be self.  if
+      # you have a more complicated situation where you are passing the block around as
+      # an argument from another scope or method, you should take care to also keep
+      # track of it's context, so you can pass it correctly here.
+      #
+      # the context is needed to properly manage memory and let the block "drop out"
+      # when it's context deallocates, instead of creating leaks.
+      #
       def rmext_on(event, inContext:context, withBlock:block)
         rmext_observation_proxy.on(event, inContext:context, withBlock:block)
       end
 
+      # register a callback when an event is triggered on this object and remove it after it fires once
+      # see `#rmext_on` for notes about `inContext`
+      def rmext_once(event, inContext:context, withBlock:block)
+        rmext_observation_proxy.once(event, inContext:context, withBlock:block)
+      end
+
       # remove a specific callback for an event on this object
+      # see `#rmext_on` for notes about `inContext`
       def rmext_off(event, inContext:context, withBlock:block)
         if @rmext_observation_proxy
           @rmext_observation_proxy.off(event, inContext:context, withBlock:block)
@@ -223,6 +240,15 @@ module RMExtensions
       return unless context_event_blocks = context_events.objectForKey(event)
       context_event_blocks.removeObject block
       nil
+    end
+
+    def once(event, inContext:context, withBlock:block)
+      block.weak!
+      once_block = lambda do |opts|
+        off(event, inContext:context, withBlock:once_block)
+        block.call(opts)
+      end
+      on(event, inContext:context, withBlock:once_block)
     end
 
     def off_all
