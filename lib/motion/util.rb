@@ -8,6 +8,48 @@ module RMExtensions
     @debug = bool
   end
 
+  # LongTask encapsulates beginBackgroundTaskWithExpirationHandler/endBackgroundTask:
+  #
+  # RMExtensions::BackgroundTask.new("my long task") do |task|
+  #   do_something_long
+  #   task.end!
+  # end
+  #
+  # RMExtensions::BackgroundTask.new("my long task") do |task|
+  #   do_something_long_async do
+  #     # later this long task finishes...
+  #     task.end!
+  #   end
+  # end
+  #
+  class LongTask
+    attr_accessor :bgTask, :desc
+
+    # RMExtensions::BackgroundTask.new("my long task") { |task| task.end! }
+    def initialize(desc=nil, &block)
+      @desc = desc
+      @bgTask = UIApplication.sharedApplication.beginBackgroundTaskWithExpirationHandler(lambda do
+        if ::RMExtensions.debug?
+          p "ERROR: #{self.inspect} #{@desc} didn't call #end! in time!"
+        end
+        UIApplication.sharedApplication.endBackgroundTask(@bgTask)
+      end.weak!)
+      block.call(self)
+      self
+    end
+
+    def end!
+      if ::RMExtensions.debug?
+        p "SUCCESS: #{self.inspect} #{@desc} ended successfully."
+      end
+      if @bgTask != UIBackgroundTaskInvalid
+        UIApplication.sharedApplication.endBackgroundTask(@bgTask)
+        @bgTask = UIBackgroundTaskInvalid
+      end
+    end
+
+  end
+
   module ObjectExtensions
 
     module Util
