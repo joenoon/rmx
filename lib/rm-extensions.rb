@@ -9,7 +9,7 @@ Motion::Project::App.setup do |app|
     layout
     util
     accessors
-    observation
+    events
     queues
   ).reverse.each do |x|
     app.files.unshift(File.join(File.dirname(__FILE__), "motion/#{x}.rb"))
