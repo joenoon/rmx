@@ -25,27 +25,45 @@ module RMExtensions
   class LongTask
     attr_accessor :bgTask, :desc
 
+    def self.time_remaining
+      UIApplication.sharedApplication.backgroundTimeRemaining
+    end
+
     # RMExtensions::BackgroundTask.new("my long task") { |task| task.end! }
-    def initialize(desc=nil, &block)
-      @desc = desc
-      @bgTask = UIApplication.sharedApplication.beginBackgroundTaskWithExpirationHandler(lambda do
-        if ::RMExtensions.debug?
-          p "ERROR: #{self.inspect} #{@desc} didn't call #end! in time!"
-        end
-        UIApplication.sharedApplication.endBackgroundTask(@bgTask)
-      end.weak!)
-      block.call(self)
+    def self.create(desc=nil, &block)
+      x = new(desc)
+      block.weak!.call(x)
+      x
+    end
+
+    def initialize(desc=nil)
+      @desc = "#{rmext_object_desc} #{desc}"
+      @bgTask = UIApplication.sharedApplication.beginBackgroundTaskWithName(@desc, expirationHandler:lambda do
+        p "ERROR: #{@desc} didn't call #end! in time!"
+        __end!
+      end)
       self
     end
 
     def end!
       if ::RMExtensions.debug?
-        p "SUCCESS: #{self.inspect} #{@desc} ended successfully."
+        p "SUCCESS: #{@desc} ended successfully."
       end
-      if @bgTask != UIBackgroundTaskInvalid
+      __end!
+    end
+
+    def __end!
+      if @bgTask && @bgTask != UIBackgroundTaskInvalid
         UIApplication.sharedApplication.endBackgroundTask(@bgTask)
         @bgTask = UIBackgroundTaskInvalid
       end
+    end
+
+    def dealloc
+      if ::RMExtensions.debug?
+        p "DEALLOC: #{@desc}"
+      end
+      super
     end
 
   end
@@ -53,6 +71,10 @@ module RMExtensions
   module ObjectExtensions
 
     module Util
+
+      def rmext_object_desc
+        "#{self.className}:#{'%x' % (self.object_id)}"
+      end
 
       # Raises an exception when called from a thread other than the main thread.
       # Good for development and experimenting.
