@@ -38,7 +38,7 @@ module RMExtensions
 
     def initialize(desc=nil)
       @desc = "#{rmext_object_desc} #{desc}"
-      @bgTask = UIApplication.sharedApplication.beginBackgroundTaskWithName(@desc, expirationHandler:lambda do
+      @bgTask = UIApplication.sharedApplication.beginBackgroundTaskWithExpirationHandler(lambda do
         p "ERROR: #{@desc} didn't call #end! in time!"
         __end!
       end)
