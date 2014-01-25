@@ -8,6 +8,10 @@ module RMExtensions
         @rmext_events_proxy ||= EventsProxy.new(self)
       end
 
+      def rmext_events_proxy?
+        !@rmext_events_proxy.nil?
+      end
+
       # register a callback when an event is triggered on this object.
       def rmext_on(object, event, &block)
         object.rmext_events_proxy.on(event, limit:-1, inContext:self, withBlock:block)
@@ -152,7 +156,9 @@ module RMExtensions
           p "CONTEXT:", @weak_object.rmext_object_desc, "UNLISTENING TO:", object.rmext_object_desc
         end
         @listenings.removeObject(object)
-        object.rmext_events_proxy.off_context(@weak_object)
+        if object.rmext_events_proxy?
+          object.rmext_events_proxy.off_context(@weak_object)
+        end
       end
     end
 
