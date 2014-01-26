@@ -29,30 +29,102 @@ module RMExtensions
       UIApplication.sharedApplication.backgroundTimeRemaining
     end
 
-    # RMExtensions::BackgroundTask.new("my long task") { |task| task.end! }
+    def self.when_all_complete(&block)
+      rmext_on_main_q do
+        if ::RMExtensions::LongTask.outstanding_tasks.size.zero?
+          rmext_block_on_main_q(block)
+        else
+          rmext_once(::RMExtensions::LongTask, :all_complete) do |opts|
+            block.call
+          end
+        end
+      end
+    end
+
+    def self.outstanding_queue
+      Dispatch.once do
+        @outstanding_queue = Dispatch::Queue.new("#{NSBundle.mainBundle.bundleIdentifier}.outstanding.LongTask")
+      end
+      @outstanding_queue
+    end
+
+    def self.outstanding_tasks
+      Dispatch.once do
+        @outstanding_tasks = []
+      end
+      @outstanding_tasks
+    end
+
+    # RMExtensions::BackgroundTask.verbose("my long task") { |task| task.end! }
+    def self.verbose(desc=nil, &block)
+      _creator(desc, true, true, &block)
+    end
+
+    # RMExtensions::BackgroundTask.create("my long task") { |task| task.end! }
     def self.create(desc=nil, &block)
-      x = new(desc)
+      _creator(desc, false, true, &block)
+    end
+
+    def self.internal(desc=nil, &block)
+      _creator(desc, false, false, &block)
+    end
+
+    def self._creator(desc=nil, verbose=false, tracking=true, &block)
+      x = new(desc, verbose, tracking)
       block.weak!.call(x)
       x
     end
 
-    def initialize(desc=nil)
+    def self.reset_outstanding_tasks!
+      ::RMExtensions::LongTask.outstanding_queue.sync do
+        size = ::RMExtensions::LongTask.outstanding_tasks.size
+        if size > 0
+          p "WARNING: reset_outstanding_tasks! (was: #{size})"
+          ::RMExtensions::LongTask.outstanding_tasks.removeAllObjects
+        end
+      end
+    end
+
+    def initialize(desc=nil, verbose=false, tracking=true)
+      @verbose = verbose
+      @tracking = tracking
       @desc = "#{rmext_object_desc} #{desc}"
       @bgTask = UIApplication.sharedApplication.beginBackgroundTaskWithExpirationHandler(lambda do
         p "ERROR: #{@desc} didn't call #end! in time!"
         __end!
       end)
+      if ::RMExtensions.debug? || @verbose
+        p "CREATED: #{@desc}"
+      end
+      if @tracking
+        ::RMExtensions::LongTask.outstanding_queue.sync do
+          ::RMExtensions::LongTask.outstanding_tasks << self
+        end
+      end
       self
     end
 
     def end!
-      if ::RMExtensions.debug?
+      if ::RMExtensions.debug? || @verbose
         p "SUCCESS: #{@desc} ended successfully."
       end
       __end!
     end
 
     def __end!
+      if @tracking
+        ::RMExtensions::LongTask.outstanding_queue.sync do
+          ::RMExtensions::LongTask.outstanding_tasks.delete(self)
+          ::RMExtensions::LongTask.internal do |internal_task|
+            rmext_on_main_q do
+              if ::RMExtensions::LongTask.outstanding_tasks.size.zero?
+                ::RMExtensions::LongTask.rmext_trigger(:all_complete)
+              end
+              internal_task.end!
+            end
+          end
+        end
+      end
       if @bgTask && @bgTask != UIBackgroundTaskInvalid
         UIApplication.sharedApplication.endBackgroundTask(@bgTask)
         @bgTask = UIBackgroundTaskInvalid
