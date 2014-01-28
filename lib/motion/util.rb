@@ -34,7 +34,7 @@ module RMExtensions
         if ::RMExtensions::LongTask.outstanding_tasks.size.zero?
           rmext_block_on_main_q(block)
         else
-          rmext_once(::RMExtensions::LongTask, :all_complete) do |opts|
+          ::RMExtensions::LongTask.rmext_once(:all_complete) do |opts|
             block.call
           end
         end
@@ -115,7 +115,7 @@ module RMExtensions
       if @tracking
         ::RMExtensions::LongTask.outstanding_queue.sync do
           ::RMExtensions::LongTask.outstanding_tasks.delete(self)
-          ::RMExtensions::LongTask.internal do |internal_task|
+          ::RMExtensions::LongTask.internal("check for all complete") do |internal_task|
             rmext_on_main_q do
               if ::RMExtensions::LongTask.outstanding_tasks.size.zero?
                 ::RMExtensions::LongTask.rmext_trigger(:all_complete)
