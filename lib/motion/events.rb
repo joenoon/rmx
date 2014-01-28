@@ -4,56 +4,59 @@ module RMExtensions
 
     module Events
 
-      def rmext_events_proxy
-        @rmext_events_proxy ||= EventsProxy.new(self)
+      def rmext_events_from_proxy
+        @rmext_events_from_proxy ||= EventsFromProxy.new(self)
       end
 
-      def rmext_events_proxy?
-        !@rmext_events_proxy.nil?
+      def rmext_events_from_proxy?
+        !!@rmext_events_from_proxy
+      end
+
+      def rmext_events_to_proxy
+        @rmext_events_to_proxy ||= EventsToProxy.new(self)
+      end
+
+      def rmext_events_to_proxy?
+        !!@rmext_events_to_proxy
       end
 
       # register a callback when an event is triggered on this object.
-      def rmext_on(object, event, &block)
-        object.rmext_events_proxy.on(event, limit:-1, inContext:self, withBlock:block)
+      def rmext_on(event, opts={}, &block)
+        rmext_events_from_proxy.on(event, opts, &block)
       end
 
-      def rmext_now_and_on(object, event, &block)
-        object.rmext_events_proxy.now_and_on(event, inContext:self, withBlock:block)
+      def rmext_now_and_on(event, opts={}, &block)
+        rmext_events_from_proxy.now_and_on(event, opts, &block)
       end
 
       # register a callback when an event is triggered on this object and remove it after it fires once
-      def rmext_once(object, event, &block)
-        object.rmext_events_proxy.on(event, limit:1, inContext:self, withBlock:block)
+      def rmext_once(event, opts={}, &block)
+        opts[:limit] = 1
+        rmext_events_from_proxy.on(event, opts, &block)
       end
 
-      # remove a specific callback for an event on object
-      def rmext_off(object, event, &block)
-        if object.rmext_events_proxy?
-          object.rmext_events_proxy.off(event, inContext:self, withBlock:block)
+      # @model.rmext_off(:fire, self)      # remove :fire in context "self"
+      # @model.rmext_off(:fire, &block)    # remove :fire for specific handler
+      # @model.rmext_off(:fire)            # remove all :fire in all knowns contexts
+      # @model.rmext_off(self)             # remove all events in context "self"
+      # @model.rmext_off                   # remove all events in all known contexts
+      def rmext_off(event=nil, context=nil, &block)
+        if rmext_events_from_proxy?
+          rmext_events_from_proxy.off(event, context, &block)
         end
       end
 
-      # remove all event callbacks on this object,
       # remove all event callbacks from other objects in this object's "self"
       def rmext_cleanup
-        if @rmext_events_proxy
-          @rmext_events_proxy.cleanup
-        end
-      end
-
-      ### these get called on the object: ie. @model.rmext_off_all
-
-      # remove all event callbacks on this object
-      def rmext_off_all
-        if @rmext_events_proxy
-          @rmext_events_proxy.off_all
+        if rmext_events_to_proxy?
+          rmext_events_to_proxy.cleanup
         end
       end
 
       # trigger an event with value on this object
       def rmext_trigger(event, value=nil)
-        if @rmext_events_proxy
-          @rmext_events_proxy.trigger(event, value)
+        if rmext_events_from_proxy?
+          rmext_events_from_proxy.trigger(event, value)
         end
       end
 
@@ -65,39 +68,80 @@ module RMExtensions
     attr_accessor :context, :value, :target, :event
   end
 
-  # Proxy class used to hold the actual listeners and contexts where listening
-  # and watches for the real class intended to hold the observation to be
-  # deallocated, so the events can be cleaned up.
-  class EventsProxy
+  # Proxy object used to hold the firing objects that this real object's
+  # "self" owns handlers for.
+  # Can be used to cleanup all handlers across all firing objects that have
+  # the hanlder's owner (Proc#owner) == this real object.
+  # Does not need to perform deallocation logic as nothing is retained
+  # and the real object will fall out of the cooresponding EventsFromProxy
+  # automatically.
+  class EventsToProxy
+
+    rmext_zeroing_weak_attr_accessor :weak_object
+    
+    def initialize(obj)
+      self.weak_object = obj
+      @has_handlers_for = NSHashTable.weakObjectsHashTable
+    end
+
+    def has_handlers_for!(firing_object)
+      if ::RMExtensions.debug?
+        p "CONTEXT:", weak_object.rmext_object_desc, "LISTENING TO:", firing_object.rmext_object_desc
+      end
+      @has_handlers_for.addObject(firing_object)
+    end
+
+    def cleanup(firing_object=nil)
+      # p "cleanup caller", caller
+      if firing_object
+        if @has_handlers_for.containsObject(firing_object)
+          if ::RMExtensions.debug?
+            p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
+          end
+          @has_handlers_for.removeObject(firing_object)
+          firing_object.rmext_off(weak_object)
+        end
+      else
+        while firing_object = @has_handlers_for.anyObject
+          if ::RMExtensions.debug?
+            p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
+          end
+          @has_handlers_for.removeObject(firing_object)
+          firing_object.rmext_off(weak_object)
+        end
+      end
+      true
+    end
+
+  end
+
+  # Proxy class used to hold the actual handlers and contexts of handlers.
+  # When the real class deallocates, all handlers are removed.
+  class EventsFromProxy
+
+    rmext_zeroing_weak_attr_accessor :weak_object
 
     def initialize(obj)
-      @weak_object = WeakRef.new(obj)
+      self.weak_object = obj
       @events = NSMapTable.weakToStrongObjectsMapTable
-      @listenings = NSHashTable.weakObjectsHashTable
       if ::RMExtensions.debug?
-        p "CREATED EventsProxy: #{@weak_object.rmext_object_desc}"
+        p "CREATED #{className}: #{weak_object.rmext_object_desc}"
       end
     end
 
     def dealloc
-      @did_dealloc = true
-      cleanup
+      # @did_dealloc = true
+      off
       if ::RMExtensions.debug?
-        p "DEALLOC EventsProxy: #{@weak_object.rmext_object_desc}"
+        p "DEALLOC #{className}: #{weak_object.rmext_object_desc}"
       end
       super
     end
 
-    def cleanup
-      off_all
-      off_all_context
-      true
-    end
-
-    def on(event, limit:limit, inContext:context, withBlock:block)
+    def on(event, opts={}, &block)
       return if event.nil? || block.nil?
       event = event.to_s
-      context ||= self.class
+      context = block.owner
       unless context_events = @events.objectForKey(context)
         context_events = {}
         @events.setObject(context_events, forKey:context)
@@ -107,64 +151,66 @@ module RMExtensions
         context_events.setObject(context_event_blocks, forKey:event)
       end
       block.weak!
-      context_event_blocks[block] = limit
-      # i.e.: controller/view listening_to model
-      context.rmext_events_proxy.listening_to(@weak_object)
+      context_event_blocks[block] = opts[:limit] || -1
+      # i.e.: controller/view has handlers for object
+      context.rmext_events_to_proxy.has_handlers_for!(weak_object)
     end
 
-    # this is called in the reverse direction than normal
-    def listening_to(object)
-      if ::RMExtensions.debug?
-        p "CONTEXT:", @weak_object.rmext_object_desc, "LISTENING TO:", object.rmext_object_desc
-      end
-      @listenings.addObject(object)
-    end
-
-    def now_and_on(event, inContext:context, withBlock:block)
+    def now_and_on(event, opts={}, &block)
       rmext_inline_or_on_main_q do
         res = EventResponse.new
-        res.context = context
+        res.context = block.owner
         res.value = nil
-        res.target = @weak_object
+        res.target = weak_object
         res.event = event
         block.call(res)
       end
-      on(event, limit:-1, inContext:context, withBlock:block)
+      on(event, opts, &block)
     end
 
-    def off(event, inContext:context, withBlock:block)
-      return if event.nil? || block.nil?
-      event = event.to_s
-      context ||= self.class
-      return unless context_events = @events.objectForKey(context)
-      return unless context_event_blocks = context_events.objectForKey(event)
-      context_event_blocks.delete block
-      nil
-    end
-
-    def off_all
-      @events.removeAllObjects
-    end
-
-    def off_context(context)
-      @events.setObject(nil, forKey:context)
-    end
-
-    def off_all_context
-      while object = @listenings.anyObject
-        if ::RMExtensions.debug?
-          p "CONTEXT:", @weak_object.rmext_object_desc, "UNLISTENING TO:", object.rmext_object_desc
+    def off(event=nil, context=nil, &block)
+      if event.is_a?(String) || event.is_a?(Symbol)
+        event = event.to_s
+        if context
+          # remove all handlers for the given event in the given context
+          if context_events = @events.objectForKey(context)
+            context_events.delete(event)
+          end
+        elsif block
+          # remove the one block for the event in the blocks #owner
+          context = block.owner
+          if context_events = @events.objectForKey(context)
+            if context_event_blocks = context_events.objectForKey(event)
+              context_event_blocks.delete block
+            end
+          end
+        else
+          # remove all handlers for the event in all contexts known
+          keyEnumerator = @events.keyEnumerator
+          contexts = []
+          while context = keyEnumerator.nextObject
+            contexts.push context
+          end
+          while context = contexts.pop
+            if context_events = @events.objectForKey(context)
+              context_events.delete event
+            end
+          end
         end
-        @listenings.removeObject(object)
-        if object.rmext_events_proxy?
-          object.rmext_events_proxy.off_context(@weak_object)
-        end
+      elsif event
+        # event is really a context. remove all events and handlers for the context
+        context = event
+        @events.removeObjectForKey(context)
+      else
+        # remove everything
+        @events.removeAllObjects
       end
+      nil
     end
 
     def trigger(event, value)
       rmext_inline_or_on_main_q do
-        next if @did_dealloc
+        # next if @did_dealloc
         next if event.nil?
         event = event.to_s
         keyEnumerator = @events.keyEnumerator
@@ -177,24 +223,24 @@ module RMExtensions
             if event_blocks = context_events[event]
               blocks = event_blocks.keys
               if ::RMExtensions.debug?
-                p "TRIGGER:", event, "OBJECT:", @weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc, "BLOCKS SIZE:", blocks.size
+                p "TRIGGER:", event, "OBJECT:", weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc, "BLOCKS SIZE:", blocks.size
               end
               while block = blocks.pop
                 limit = event_blocks[block]
                 res = EventResponse.new
                 res.context = context
                 res.value = value
-                res.target = @weak_object
+                res.target = weak_object
                 res.event = event
                 block.call(res)
                 if limit == 1
                   # off
                   if ::RMExtensions.debug?
-                    p "LIMIT REACHED:", event, "OBJECT:", @weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc
+                    p "LIMIT REACHED:", event, "OBJECT:", weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc
                   end
-                  off(event, inContext:context, withBlock:block)
+                  off(event, context, &block)
                 elsif limit > 1
-                  context_events[block] -= 1
+                  event_blocks[block] -= 1
                 end
               end
             end
