@@ -171,18 +171,18 @@ module RMExtensions
     def off(event=nil, context=nil, &block)
       if event.is_a?(String) || event.is_a?(Symbol)
         event = event.to_s
-        if context
-          # remove all handlers for the given event in the given context
-          if context_events = @events.objectForKey(context)
-            context_events.delete(event)
-          end
-        elsif block
+        if block
           # remove the one block for the event in the blocks #owner
           context = block.owner
           if context_events = @events.objectForKey(context)
             if context_event_blocks = context_events.objectForKey(event)
               context_event_blocks.delete block
             end
+          end
+        elsif context
+          # remove all handlers for the given event in the given context
+          if context_events = @events.objectForKey(context)
+            context_events.delete(event)
           end
         else
           # remove all handlers for the event in all contexts known
