@@ -30,6 +30,7 @@ module RMExtensions
       "max" => UILayoutPriorityRequired, # = 1000
       "required" => UILayoutPriorityRequired, # = 1000
       "high" => UILayoutPriorityDefaultHigh, # = 750
+      "med" => 500,
       "low" => UILayoutPriorityDefaultLow, # = 250
       "fit" => UILayoutPriorityFittingSizeLevel # = 50
     }
