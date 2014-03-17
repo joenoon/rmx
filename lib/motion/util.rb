@@ -8,6 +8,32 @@ module RMExtensions
     @debug = bool
   end
 
+  class WeakBlock
+    def initialize(block)
+      owner = block.owner
+      @weak_owner = WeakRef.new(owner)
+      block.weak!
+      @block = block
+      self
+    end
+
+    def owner
+      if @weak_owner.weakref_alive?
+        @block.owner
+      end
+    end
+
+    def arity
+      @block.arity
+    end
+
+    def call(*args)
+      if @weak_owner.weakref_alive?
+        @block.call(*args)
+      end
+    end
+  end
+
   # LongTask encapsulates beginBackgroundTaskWithExpirationHandler/endBackgroundTask:
   #
   # RMExtensions::BackgroundTask.new("my long task") do |task|
@@ -206,100 +232,61 @@ module RMExtensions
         end
       end
 
-      ### EXPERIMENTAL
-
-      # takes a unique_id, run_immediately bool, and block
-      # if run_immediately is true, the block is executed immediately and not counted
-      # on the next run loop, the block will be called IF it has been counted at least once.
-      # examples:
-      #
-      # # CALLED will be printed twice.  Onces immediately, and once on the next runloop:
-      # 10.times do
-      #   rmext_debounce_on_next_runloop(:my_unique_id, true) do
-      #     p "CALLED"
-      #   end
-      # end
-      #
-      # # CALLED will be printed once, on the next runloop:
-      # 10.times do
-      #   rmext_debounce_on_next_runloop(:my_unique_id, false) do
-      #     p "CALLED"
-      #   end
-      # end
-      #
-      # useful for queuing up something that should happen on the next runloop,
-      # but not every time its called.  for example, reloadData.  the goal was
-      # to get a similar behavior to how setNeedsDisplay/setNeedsLayout scheduled
-      # display/layout rendering on the next UI runloop pass
-      #
-      def rmext_debounce_on_next_runloop(unique_id, run_immediately, &block)
-        Thread.current["rmext_debounce_on_next_runloop"] ||= {}
-        lookup = Thread.current["rmext_debounce_on_next_runloop"]
-        if lookup.key?(unique_id)
-          lookup[unique_id][0] += 1
+      def rmext_debounce(unique_id, opts={}, &block)
+        if (seconds = opts[:seconds]) && seconds > 0
+          rmext_debounce_seconds(seconds, unique_id, opts[:now], &block)
         else
-          lookup[unique_id] = [ 0, lambda do
-            if (debounced_times = lookup[unique_id][0]) > 0
-              # p "we have", debounced_times, "debounced_times queued for unique_id", unique_id
+          rmext_debounce_runloop(unique_id, opts[:now], &block)
+        end
+      end
+
+      def rmext_debounce_runloop(unique_id, run_immediately=false, &block)
+        lookup = Thread.current["rmext_debounce_runloop"] ||= {}
+        key = [ self, unique_id ]
+        lookup[key] ||= begin
+          block.call if run_immediately
+          CFRunLoopPerformBlock(
+            CFRunLoopGetCurrent(),
+            KCFRunLoopDefaultMode,
+            lambda do
+              lookup.delete(key)
               block.call
-            else
-              # p "no debounced_times queued for unique_id", unique_id
             end
-            lookup.delete(unique_id)
-          end ]
-          if run_immediately
-            block.call
-          else
-            lookup[unique_id][0] += 1
-          end
-          # p NSRunLoop.currentRunLoop, NSRunLoop.currentRunLoop.currentMode, lookup[unique_id][1]
-          NSRunLoop.currentRunLoop.performSelector('call', target:lookup[unique_id][1], argument:nil, order:0, modes:[NSRunLoop.currentRunLoop.currentMode])
+          )
+          true
         end
+        nil
       end
 
-      def rmext_debounce_selector_on_next_runloop(selector, run_immediately)
-        Thread.current["rmext_debounce_selector_on_next_runloop"] ||= {}
-        lookup = Thread.current["rmext_debounce_selector_on_next_runloop"]
-        if lookup.key?(selector)
-          lookup[selector] += 1
-        else
-          lookup[selector] = 0
-          if run_immediately
-            send(selector)
-          else
-            lookup[selector] += 1
-          end
-          # p NSRunLoop.currentRunLoop, NSRunLoop.currentRunLoop.currentMode, self, selector, lookup[selector]
-          block = lambda do
-            if (debounced_times = lookup[selector]) > 0
-              # p "we have", debounced_times, "debounced_times queued for", self, selector
-              send(selector)
-            else
-              # p "no debounced_times queued for", self, selector
-            end
-            lookup.delete(selector)
-          end
-          NSRunLoop.currentRunLoop.performSelector('call', target:block, argument:nil, order:0, modes:[NSRunLoop.currentRunLoop.currentMode])
+      def rmext_debounce_seconds(seconds, unique_id, run_immediately=false, &block)
+        lookup = Thread.current["rmext_debounce_seconds"] ||= {}
+        key = [ self, unique_id ]
+        lookup[key] ||= begin
+          block.call if run_immediately
+          units = CFGregorianUnits.new
+          units.seconds = seconds
+          CFRunLoopAddTimer(
+            CFRunLoopGetCurrent(),
+            CFRunLoopTimerCreateWithHandler(
+              KCFAllocatorDefault,
+              CFAbsoluteTimeAddGregorianUnits(
+                CFAbsoluteTimeGetCurrent(),
+                nil,
+                units
+              ),
+              0,
+              0,
+              0,
+              lambda do |timer|
+                lookup.delete(key)
+                block.call
+              end
+            ),
+            KCFRunLoopDefaultMode
+          )
+          true
         end
-      end
-
-      # more typical debouncing behavior
-      def rmext_debounced(method_name, seconds, *args)
-        new_method_name = "#{method_name}_#{seconds}"
-        unless respond_to?(new_method_name)
-          self.class.send(:define_method, new_method_name) do |*xargs|
-            xargs.unshift(method_name)
-            send(*xargs)
-          end
-        end
-        args.unshift(new_method_name)
-        NSObject.cancelPreviousPerformRequestsWithTarget(self, selector:"rmext_dispatch__send__", object:args)
-        performSelector("rmext_dispatch__send__", withObject:args, afterDelay:seconds)
-      end
-
-      # used internally by `rmext_debounced`
-      def rmext_dispatch__send__(*args)
-        send(*args)
+        nil
       end
 
     end
