@@ -4,6 +4,37 @@ module RMExtensions
 
     module Events
 
+      def rmext_when_all(array, event, &block)
+        block = WeakBlock.new(block)
+        outstanding = {}
+        finished = {}
+        complete = false
+        array.each do |x|
+          outstanding[x] = true
+        end
+        complete_blocks = {}
+        array.each do |x|
+           complete_blocks[x] = proc do
+            finished[x] = true
+            if !complete && (finished == outstanding)
+              complete = true
+              block.call
+            end
+            complete_blocks.delete(x)
+          end
+          x.rmext_once(event, &complete_blocks[x])
+        end
+        # return canceller
+        WeakBlock.new(lambda do
+          array.each do |x|
+            if blk = complete_blocks[x]
+              complete_blocks.delete(x)
+              x.rmext_off(event, &blk)
+            end
+          end
+        end)
+      end
+
       def rmext_events_from_proxy
         @rmext_events_from_proxy ||= EventsFromProxy.new(self)
       end
@@ -47,9 +78,9 @@ module RMExtensions
       end
 
       # remove all event callbacks from other objects in this object's "self"
-      def rmext_cleanup
+      def rmext_cleanup(firing_object=nil)
         if rmext_events_to_proxy?
-          rmext_events_to_proxy.cleanup
+          rmext_events_to_proxy.cleanup(firing_object)
         end
       end
 
@@ -172,20 +203,23 @@ module RMExtensions
       if event.is_a?(String) || event.is_a?(Symbol)
         event = event.to_s
         if block
-          # remove the one block for the event in the blocks #owner
           context = block.owner
           if context_events = @events.objectForKey(context)
             if context_event_blocks = context_events.objectForKey(event)
+              if ::RMExtensions.debug?
+                p "remove the one block for the event in the blocks #owner", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_event_blocks
+              end
               context_event_blocks.delete block
             end
           end
         elsif context
-          # remove all handlers for the given event in the given context
           if context_events = @events.objectForKey(context)
+            if ::RMExtensions.debug?
+              p "remove all handlers for the given event in the given context", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
+            end
             context_events.delete(event)
           end
         else
-          # remove all handlers for the event in all contexts known
           keyEnumerator = @events.keyEnumerator
           contexts = []
           while context = keyEnumerator.nextObject
@@ -193,16 +227,23 @@ module RMExtensions
           end
           while context = contexts.pop
             if context_events = @events.objectForKey(context)
+              if ::RMExtensions.debug?
+                p "remove all handlers for the event in all contexts known", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
+              end
               context_events.delete event
             end
           end
         end
       elsif event
-        # event is really a context. remove all events and handlers for the context
         context = event
+        if ::RMExtensions.debug?
+          p "event is really a context. remove all events and handlers for the context", "CONTEXT:", context.rmext_object_desc, "BLOCKS:", @events.objectForKey(context)
+        end
         @events.removeObjectForKey(context)
       else
-        # remove everything
+        if ::RMExtensions.debug?
+          p "remove everything"
+        end
         @events.removeAllObjects
       end
       nil
