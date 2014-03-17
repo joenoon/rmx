@@ -11,6 +11,7 @@ Motion::Project::App.setup do |app|
     accessors
     events
     queues
+    work_in_progress
   ).reverse.each do |x|
     app.files.unshift(File.join(File.dirname(__FILE__), "motion/#{x}.rb"))
   end
