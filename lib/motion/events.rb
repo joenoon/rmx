@@ -4,37 +4,6 @@ module RMExtensions
 
     module Events
 
-      def rmext_when_all(array, event, &block)
-        block = WeakBlock.new(block)
-        outstanding = {}
-        finished = {}
-        complete = false
-        array.each do |x|
-          outstanding[x] = true
-        end
-        complete_blocks = {}
-        array.each do |x|
-           complete_blocks[x] = proc do
-            finished[x] = true
-            if !complete && (finished == outstanding)
-              complete = true
-              block.call
-            end
-            complete_blocks.delete(x)
-          end
-          x.rmext_once(event, &complete_blocks[x])
-        end
-        # return canceller
-        WeakBlock.new(lambda do
-          array.each do |x|
-            if blk = complete_blocks[x]
-              complete_blocks.delete(x)
-              x.rmext_off(event, &blk)
-            end
-          end
-        end)
-      end
-
       def rmext_events_from_proxy
         @rmext_events_from_proxy ||= EventsFromProxy.new(self)
       end
