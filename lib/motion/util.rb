@@ -289,6 +289,20 @@ module RMExtensions
         nil
       end
 
+      def rmext_retained
+        unless @rmext_retained
+          @rmext_retained = true
+          retain
+        end
+      end
+
+      def rmext_not_retained
+        if @rmext_retained
+          @rmext_retained = false
+          release
+        end
+      end
+
     end
 
   end
