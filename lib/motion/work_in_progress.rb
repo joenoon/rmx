@@ -735,7 +735,6 @@ module RMExtensions
     include CommonMethods
 
     rmext_weak_attr_accessor :tableView
-    attr_reader :data
 
     attr_accessor :registered_reuse_identifiers
 
@@ -763,6 +762,10 @@ module RMExtensions
       @heights = {}
       @registered_reuse_identifiers = {}
       self
+    end
+
+    def data
+      @data
     end
 
     def sections=(sections)
@@ -978,8 +981,6 @@ module RMExtensions
     rmext_weak_attr_accessor :tableView
     rmext_weak_attr_accessor :tableHandler
     attr_accessor :indexPath, :innerContentView
-    attr_reader :data
-    attr_reader :view
 
     def dealloc
       dealloc_inspect
@@ -1021,8 +1022,16 @@ module RMExtensions
     def setup
     end
 
+    def data
+      @data
+    end
+
     def data=(data)
       @data = data
+    end
+
+    def view
+      @view
     end
 
     def view=(view)
