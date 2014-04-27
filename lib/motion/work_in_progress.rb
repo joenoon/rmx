@@ -14,9 +14,7 @@ module RMExtensions
 
   def self.keyboardWillChangeFrame(notification)
     @keyboardWillChangeFrameNotification = notification
-    rmext_debounce(:processKeyboardWillChange) do
-      processKeyboardWillChange
-    end
+    processKeyboardWillChange
   end
 
   def self.processKeyboardWillChange
@@ -345,7 +343,6 @@ module RMExtensions
     # if you want to do more/other stuff on keyboardChanged, you can override this, call super, or
     # do everything on your own.
     def keyboardChanged(info)
-      # @currentKeyboardHeight = info[:height]
       if constraint = @keyboard_proxy_constraints && @keyboard_proxy_constraints[:height]
         rmext_on_main_q do
           UIView.animateWithDuration(info[:animationDuration], animations: lambda do
