@@ -61,9 +61,9 @@ module RMExtensions
       end
 
       # trigger an event with value on this object
-      def rmext_trigger2(event, value=nil)
+      def rmext_trigger2(event, *values)
         if rmext_events_from_proxy?
-          rmext_events_from_proxy.trigger2(event, value)
+          rmext_events_from_proxy.trigger2(event, *values)
         end
       end
 
@@ -267,7 +267,7 @@ module RMExtensions
       nil
     end
 
-    def trigger2(event, value)
+    def trigger2(event, *values)
       rmext_inline_or_on_main_q do
         # next if @did_dealloc
         next if event.nil?
@@ -286,7 +286,7 @@ module RMExtensions
               end
               while block = blocks.pop
                 limit = event_blocks[block]
-                block.call(value)
+                block.call(*values)
                 if limit == 1
                   # off
                   if ::RMExtensions.debug?
