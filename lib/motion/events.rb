@@ -54,16 +54,9 @@ module RMExtensions
       end
 
       # trigger an event with value on this object
-      def rmext_trigger(event, value=nil)
+      def rmext_trigger(event, *values)
         if rmext_events_from_proxy?
-          rmext_events_from_proxy.trigger(event, value)
-        end
-      end
-
-      # trigger an event with value on this object
-      def rmext_trigger2(event, *values)
-        if rmext_events_from_proxy?
-          rmext_events_from_proxy.trigger2(event, *values)
+          rmext_events_from_proxy.trigger(event, *values)
         end
       end
 
@@ -225,49 +218,7 @@ module RMExtensions
       nil
     end
 
-    def trigger(event, value)
-      rmext_inline_or_on_main_q do
-        # next if @did_dealloc
-        next if event.nil?
-        event = event.to_s
-        keyEnumerator = @events.keyEnumerator
-        contexts = []
-        while context = keyEnumerator.nextObject
-          contexts.push context
-        end
-        while context = contexts.pop
-          if context_events = @events.objectForKey(context)
-            if event_blocks = context_events[event]
-              blocks = event_blocks.keys
-              if ::RMExtensions.debug?
-                p "TRIGGER:", event, "OBJECT:", weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc, "BLOCKS SIZE:", blocks.size
-              end
-              while block = blocks.pop
-                limit = event_blocks[block]
-                res = EventResponse.new
-                res.context = context
-                res.value = value
-                res.target = weak_object
-                res.event = event
-                block.call(res)
-                if limit == 1
-                  # off
-                  if ::RMExtensions.debug?
-                    p "LIMIT REACHED:", event, "OBJECT:", weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc
-                  end
-                  off(event, context, &block)
-                elsif limit > 1
-                  event_blocks[block] -= 1
-                end
-              end
-            end
-          end
-        end
-      end
-      nil
-    end
-
-    def trigger2(event, *values)
+    def trigger(event, *values)
       rmext_inline_or_on_main_q do
         # next if @did_dealloc
         next if event.nil?

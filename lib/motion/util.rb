@@ -60,7 +60,7 @@ module RMExtensions
         if ::RMExtensions::LongTask.outstanding_tasks.size.zero?
           rmext_block_on_main_q(block)
         else
-          ::RMExtensions::LongTask.rmext_once(:all_complete) do |opts|
+          ::RMExtensions::LongTask.rmext_once(:all_complete) do
             block.call
           end
         end
