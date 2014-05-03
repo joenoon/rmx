@@ -118,12 +118,16 @@ module RMExtensions
 
     module InstanceMethods
 
+      def after_attributes_set
+      end
+
       def attributes=(attrs={})
         keys = [] + attrs.keys
         while key = keys.pop
           value = attrs[key]
           self.send("#{key}=", value)
         end
+        after_attributes_set
       end
 
     end
