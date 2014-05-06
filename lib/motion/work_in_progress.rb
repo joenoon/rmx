@@ -99,7 +99,9 @@ module RMExtensions
     end
 
     def dealloc_inspect
-      p " - dealloc!"
+      if ::RMExtensions.debug?
+        p " - dealloc!"
+      end
     end
 
     def p(*args)
