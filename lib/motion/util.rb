@@ -1,39 +1,5 @@
 module RMExtensions
 
-  def self.debug?
-    !!@debug
-  end
-
-  def self.debug!(bool=true)
-    @debug = bool
-  end
-
-  class WeakBlock
-    def initialize(block)
-      owner = block.owner
-      @weak_owner = WeakRef.new(owner)
-      block.weak!
-      @block = block
-      self
-    end
-
-    def owner
-      if @weak_owner.weakref_alive?
-        @block.owner
-      end
-    end
-
-    def arity
-      @block.arity
-    end
-
-    def call(*args)
-      if @weak_owner.weakref_alive?
-        @block.call(*args)
-      end
-    end
-  end
-
   # LongTask encapsulates beginBackgroundTaskWithExpirationHandler/endBackgroundTask:
   #
   # RMExtensions::BackgroundTask.new("my long task") do |task|
@@ -50,6 +16,8 @@ module RMExtensions
   #
   class LongTask
     attr_accessor :bgTask, :desc
+
+    include CommonMethods
 
     def self.time_remaining
       UIApplication.sharedApplication.backgroundTimeRemaining
@@ -119,7 +87,7 @@ module RMExtensions
         p "ERROR: #{@desc} didn't call #end! in time!"
         __end!
       end)
-      if ::RMExtensions.debug? || @verbose
+      if DEBUG_LONGTASK || @verbose
         p "CREATED: #{@desc}"
       end
       if @tracking
@@ -131,7 +99,7 @@ module RMExtensions
     end
 
     def end!
-      if ::RMExtensions.debug? || @verbose
+      if DEBUG_LONGTASK || @verbose
         p "SUCCESS: #{@desc} ended successfully."
       end
       __end!
@@ -157,8 +125,8 @@ module RMExtensions
       end
     end
 
-    def dealloc
-      if ::RMExtensions.debug?
+    def rmext_dealloc
+      if DEBUG_DEALLOC
         p "DEALLOC: #{@desc}"
       end
       super

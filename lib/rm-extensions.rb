@@ -6,6 +6,8 @@ end
 
 Motion::Project::App.setup do |app|
   %w(
+    env
+    common_methods
     layout
     util
     accessors
@@ -15,4 +17,9 @@ Motion::Project::App.setup do |app|
   ).reverse.each do |x|
     app.files.unshift(File.join(File.dirname(__FILE__), "motion/#{x}.rb"))
   end
+  env_filename = File.expand_path("../build/env.rb", File.dirname(__FILE__))
+  File.open(env_filename, "w") do |f|
+    f.puts %Q{module RMExtensions\n  Env = #{ENV['rmext_env'] == '1' ? ENV.to_hash : {}}\nend\n}
+  end
+  app.files.unshift(env_filename)
 end

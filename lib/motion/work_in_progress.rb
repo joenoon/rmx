@@ -48,69 +48,6 @@ module RMExtensions
   end
   NSNotificationCenter.defaultCenter.addObserver(self, selector:'keyboardWillChangeFrame:', name:UIKeyboardWillChangeFrameNotification, object:nil)
 
-  module CommonMethods
-
-    def common_deallocs
-      # rmext_cleanup
-      rmext_nil_instance_variables!
-      NSNotificationCenter.defaultCenter.removeObserver(self)
-      objs = []
-      ivars = [] + instance_variables
-      while ivar = ivars.pop
-        if v = instance_variable_get(ivar)
-          if v.is_a?(UIView) || v.is_a?(UISearchDisplayController)
-            objs.push v
-          end
-        end
-      end
-      if is_a?(UIViewController)
-        if isViewLoaded
-          objs += [ view ]
-          objs += view.subviews
-        end
-      end
-      objs.uniq!
-      while v = objs.pop
-        # p "v", v.inspect
-        if v.respond_to?('dataSource=')
-          # p "CLEANUP dataSource= on", v.inspect, v.dataSource.inspect
-          v.dataSource = nil
-        end
-        if v.respond_to?('delegate=')
-          # p "CLEANUP delegate= on", v.inspect, v.delegate.inspect
-          v.delegate = nil
-        end
-        if v.respond_to?('searchResultsDataSource=')
-          # p "CLEANUP searchResultsDataSource= on", v.inspect, v.searchResultsDataSource.inspect
-          v.searchResultsDataSource = nil
-        end
-        if v.respond_to?('searchResultsDelegate=')
-          # p "CLEANUP searchResultsDelegate= on", v.inspect, v.searchResultsDelegate.inspect
-          v.searchResultsDelegate = nil
-        end
-      end
-      ivars = nil
-      objs = nil
-      v = nil
-    end
-
-    def alloc_inspect
-      p " +   alloc!"
-    end
-
-    def dealloc_inspect
-      if ::RMExtensions.debug?
-        p " - dealloc!"
-      end
-    end
-
-    def p(*args)
-      args.unshift rmext_object_desc
-      Motion::Log.info(args.map(&:inspect).join(" "))
-    end
-
-  end
-
   module SetAttributes
 
     def self.included(klass)
@@ -286,28 +223,6 @@ module RMExtensions
     end
   end
 
-  module Logging
-
-    module Alloc
-
-      def self.included(klass)
-        klass.send(:extend, ClassMethods)
-      end
-
-      module ClassMethods
-
-        def allocWithZone(zone)
-          s = super
-          s.alloc_inspect
-          s
-        end
-
-      end
-
-    end
-
-  end
-
   module KeyboardHelpers
 
     def keyboard_proxy
@@ -366,7 +281,6 @@ module RMExtensions
 
     include CommonMethods
     include ViewControllerPresentation
-    include Logging::Alloc
 
     def viewDidLoad
       s = super
@@ -424,7 +338,6 @@ module RMExtensions
 
     include CommonMethods
     include ViewControllerPresentation
-    include Logging::Alloc
     include KeyboardHelpers
     include SetAttributes
 
@@ -477,8 +390,7 @@ module RMExtensions
       super
     end
     
-    def dealloc
-      dealloc_inspect
+    def rmext_dealloc
       common_deallocs
       super
     end
@@ -489,7 +401,6 @@ module RMExtensions
 
     include CommonMethods
     include ViewControllerPresentation
-    include Logging::Alloc
     include KeyboardHelpers
     include SetAttributes
 
@@ -542,8 +453,7 @@ module RMExtensions
       super
     end
 
-    def dealloc
-      dealloc_inspect
+    def rmext_dealloc
       common_deallocs
       super
     end
@@ -557,8 +467,7 @@ module RMExtensions
 
     attr_accessor :updatedSize, :reportSizeChanges
 
-    def dealloc
-      dealloc_inspect
+    def rmext_dealloc
       common_deallocs
       super
     end
@@ -749,8 +658,7 @@ module RMExtensions
       x
     end
 
-    def dealloc
-      dealloc_inspect
+    def rmext_dealloc
       if tv = tableView
         tv.dataSource = nil
         tv.delegate = nil
@@ -984,11 +892,6 @@ module RMExtensions
     rmext_weak_attr_accessor :tableView
     rmext_weak_attr_accessor :tableHandler
     attr_accessor :indexPath, :innerContentView
-
-    def dealloc
-      dealloc_inspect
-      super
-    end
 
     def initWithStyle(style, reuseIdentifier:reuseIdentifier)
       reuseIdentifier = reuseIdentifier.to_s
