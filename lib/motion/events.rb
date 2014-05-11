@@ -4,40 +4,59 @@ module RMExtensions
 
     def initialize
       @table = {}
+      @looks = {}
+    end
+
+    def dealloc
+      @looks = nil
+      @table = nil
+      super
     end
 
     def [](key)
-      sanitize!
-      @table[WeakRef.new(key)]
+      if k = @looks[key.object_id]
+        if k.weakref_alive?
+          @table[k]
+        else
+          @table.delete(k)
+          @looks.delete(k.object_id)
+          nil
+        end
+      end
     end
 
     def []=(key, value)
-      sanitize!
-      @table[WeakRef.new(key)] = value
+      if k = @looks[key.object_id]
+        if k.weakref_alive?
+          @table[k] = value
+        else
+          @table.delete(k)
+          @looks.delete(k.object_id)
+          nil
+        end
+      else
+        key = WeakRef.new(key)
+        @looks[key.object_id] = key
+        @table[key] = value
+      end
     end
 
     def delete(key)
-      sanitize!
-      key = WeakRef.new(key)
-      @table[key] = nil
-      @table.delete(key)
+      if k = @looks[key.object_id]
+        @table.delete(k)
+        @looks.delete(k.object_id)
+      end
     end
 
     def keys
-      sanitize!
-      @table.keys
-    end
-
-    def sanitize!
-      new_data = {}
-      keyEnum = @table.keyEnumerator
-      while k = keyEnum.nextObject
-        if k.weakref_alive?
-          new_data[k] = @table[k]
+      out = []
+      values = [] + @looks.values
+      while val = values.shift
+        if val.weakref_alive?
+          out << val
         end
       end
-      @table = new_data
-      nil
+      out
     end
 
   end
