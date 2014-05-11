@@ -138,6 +138,10 @@ module RMExtensions
 
     module Util
 
+      def rmext_own_methods
+        (methods - (superclass.methods)).sort
+      end
+
       def rmext_object_desc
         "#<#{self.className}:0x#{'%x' % (self.object_id)}(#{self.object_id})>"
       end
