@@ -18,7 +18,7 @@ module RMExtensions
         if k.weakref_alive?
           @table[k]
         else
-          @looks.delete(k.object_id)
+          @looks[k.object_id] = nil
           nil
         end
       end
@@ -29,7 +29,7 @@ module RMExtensions
         if k.weakref_alive?
           @table[k] = value
         else
-          @looks.delete(k.object_id)
+          @looks[k.object_id] = nil
           nil
         end
       else
@@ -44,7 +44,7 @@ module RMExtensions
         if k.weakref_alive?
           @table.delete(k)
         end
-        @looks.delete(k.object_id)
+        @looks[k.object_id] = nil
       end
     end
 
