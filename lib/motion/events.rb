@@ -5,46 +5,61 @@ module RMExtensions
     def initialize
       @table = {}
       @looks = {}
+      @bads = {}
+    end
+
+    def key_for_object(obj)
+      oid = obj.object_id
+      [
+        (@bads[oid] ||= 0),
+        oid
+      ]
     end
 
     def dealloc
-      @looks = nil
       @table = nil
+      @looks = nil
+      @bads = nil
       super
     end
 
     def [](key)
-      if k = @looks[key.object_id]
-        if k.weakref_alive?
+      k = key_for_object(key)
+      if obj = @looks[k]
+        if obj.weakref_alive?
           @table[k]
         else
-          @looks[k.object_id] = nil
+          @bads[key.object_id] += 1
+          # p "fix", key.object_id, @bads[key.object_id]
           nil
         end
       end
     end
 
     def []=(key, value)
-      if k = @looks[key.object_id]
-        if k.weakref_alive?
+      k = key_for_object(key)
+      if obj = @looks[k]
+        if obj.weakref_alive?
           @table[k] = value
         else
-          @looks[k.object_id] = nil
+          @bads[key.object_id] += 1
+          # p "fix", key.object_id, @bads[key.object_id]
           nil
         end
       else
         key = WeakRef.new(key)
-        @looks[key.object_id] = key
-        @table[key] = value
+        @looks[k] = key
+        @table[k] = value
       end
     end
 
     def delete(key)
-      if k = @looks[key.object_id]
-        if k.weakref_alive?
+      k = key_for_object(key)
+      if obj = @looks[k]
+        if obj.weakref_alive?
           @table.delete(k)
         end
-        @looks[k.object_id] = nil
+        @looks[k] = nil
       end
     end
 
