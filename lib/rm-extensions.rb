@@ -19,8 +19,10 @@ Motion::Project::App.setup do |app|
   end
   FileUtils.mkdir_p(File.expand_path("../build", File.dirname(__FILE__)))
   env_filename = File.expand_path("../build/env.rb", File.dirname(__FILE__))
+  rmext_env = ENV['rmext_env'] == '1' ? ENV.to_hash : {}
   File.open(env_filename, "w") do |f|
-    f.puts %Q{module RMExtensions\n  Env = #{ENV['rmext_env'] == '1' ? ENV.to_hash : {}}\nend\n}
+    f.puts %Q{module RMExtensions\n  Env = #{rmext_env.inspect}\nend\n}
   end
+  App.log "RMExtensions::Env", rmext_env.inspect
   app.files.unshift(env_filename)
 end
