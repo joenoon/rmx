@@ -11,11 +11,6 @@ module RMExtensions
       end
       rmext_dealloc
       super
-      # unless @rmext_dealloced
-      #   @rmext_dealloced = true
-      #   super
-      #   # rmext_orig_dealloc
-      # end
     end
 
     def inspect
@@ -68,7 +63,12 @@ module RMExtensions
 
     def p(*args)
       args.unshift rmext_object_desc
-      Motion::Log.info(args.map(&:inspect).join(" "))
+      super(*args)
+    end
+
+    def p!(*args)
+      args.push "!"
+      p(*args)
     end
 
   end
