@@ -1,112 +1,5 @@
 module RMExtensions
 
-  class WeakToStrongHash
-
-    def initialize
-      @table = {}
-      @looks = {}
-      @bads = {}
-    end
-
-    def key_for_object(obj)
-      oid = obj.object_id
-      [
-        (@bads[oid] ||= 0),
-        oid
-      ]
-    end
-
-    def dealloc
-      @table = nil
-      @looks = nil
-      @bads = nil
-      super
-    end
-
-    def [](key)
-      k = key_for_object(key)
-      if obj = @looks[k]
-        if obj.weakref_alive?
-          @table[k]
-        else
-          @bads[key.object_id] += 1
-          # p "fix", key.object_id, @bads[key.object_id]
-          nil
-        end
-      end
-    end
-
-    def []=(key, value)
-      k = key_for_object(key)
-      if obj = @looks[k]
-        if obj.weakref_alive?
-          @table[k] = value
-        else
-          @bads[key.object_id] += 1
-          # p "fix", key.object_id, @bads[key.object_id]
-          nil
-        end
-      else
-        key = WeakRef.new(key)
-        @looks[k] = key
-        @table[k] = value
-      end
-    end
-
-    def delete(key)
-      k = key_for_object(key)
-      if obj = @looks[k]
-        if obj.weakref_alive?
-          @table.delete(k)
-        end
-        @looks[k] = nil
-      end
-    end
-
-    def keys
-      out = []
-      values = [] + @looks.values
-      while val = values.shift
-        if val.weakref_alive?
-          out << val
-        end
-      end
-      out
-    end
-
-  end
-
-  class StrongToWeakHash
-
-    def initialize
-      @table = {}
-    end
-
-    def [](key)
-      if res = @table[key]
-        if res.weakref_alive?
-          res.retain
-        else
-          @table.delete(key)
-          nil
-        end
-      end
-    end
-
-    def []=(key, value)
-      @table[key] = WeakRef.new(value)
-    end
-
-    def delete(key)
-      @table.delete(key)
-    end
-
-    def keys
-      @table.keys
-    end
-
-  end
-
   module ObjectExtensions
 
     module Events
@@ -186,16 +79,14 @@ module RMExtensions
     
     def initialize(obj)
       self.weak_object = obj
-      @has_handlers_for = []
+      @has_handlers_for = WeakToStrongHash.new
     end
 
     def has_handlers_for!(firing_object)
       if DEBUG_EVENTS
         p "CONTEXT:", weak_object.rmext_object_desc, "LISTENING TO:", firing_object.rmext_object_desc
       end
-      if firing_object.weakref_alive?
-        @has_handlers_for << firing_object
-      end
+      @has_handlers_for[firing_object] ||= true
     end
 
     def cleanup(firing_object=nil)
@@ -208,13 +99,13 @@ module RMExtensions
           firing_object.rmext_off(weak_object)
         end
       else
-        while firing_object = @has_handlers_for.pop
-          if firing_object.weakref_alive?
-            if DEBUG_EVENTS
-              p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
-            end
-            firing_object.rmext_off(weak_object)
+        keys = [] + @has_handlers_for.keys
+        while keys.size > 0
+          firing_object = keys.shift
+          if DEBUG_EVENTS
+            p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
           end
+          firing_object.rmext_off(weak_object)
         end
       end
       true
@@ -248,16 +139,19 @@ module RMExtensions
       end
     end
 
-    def rmext_dealloc
-      off
-      super
-    end
+    # def rmext_dealloc
+    #   off
+    #   super
+    # end
 
     def on(event, opts={}, &block)
       return if event.nil? || block.nil?
       event = event.to_s
       context = block.owner
       block.weak!
+      if DEBUG_EVENTS
+        p "ON:", event, "opts:", opts
+      end
       @events[context] ||= {}
       @events[context][event] ||= {}
       @events[context][event][block] = opts[:limit] || -1
@@ -309,9 +203,9 @@ module RMExtensions
         @events.delete(context)
       else
         if DEBUG_EVENTS
-          p "remove everything"
+          p "remove everything on", weak_object.rmext_object_desc
         end
-        @events = WeakToStrongHash.new
+        @events.clear
       end
       nil
     end

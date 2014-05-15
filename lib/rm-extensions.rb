@@ -11,6 +11,9 @@ Motion::Project::App.setup do |app|
     layout
     util
     accessors
+    weak_holder
+    weak_to_strong_hash
+    strong_to_weak_hash
     events
     queues
     work_in_progress
