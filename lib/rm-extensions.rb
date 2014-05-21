@@ -14,6 +14,7 @@ Motion::Project::App.setup do |app|
     weak_holder
     weak_to_strong_hash
     strong_to_weak_hash
+    identity_map
     events
     queues
     work_in_progress
