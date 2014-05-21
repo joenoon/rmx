@@ -184,24 +184,40 @@ module RMExtensions
         end
       end
 
+      def appearing(animated)
+      end
+
       def rmext_viewWillAppear(animated)
         @viewState = :viewWillAppear
         triggerViewState!(animated)
+        appearing(animated)
+      end
+
+      def appeared(animated)
       end
 
       def rmext_viewDidAppear(animated)
         @viewState = :viewDidAppear
         triggerViewState!(animated)
+        appeared(animated)
+      end
+
+      def disappearing(animated)
       end
 
       def rmext_viewWillDisappear(animated)
         @viewState = :viewWillDisappear
         triggerViewState!(animated)
+        disappearing(animated)
+      end
+
+      def disappeared(animated)
       end
 
       def rmext_viewDidDisappear(animated)
         @viewState = :viewDidDisappear
         triggerViewState!(animated)
+        disappeared(animated)
       end
 
       def present(vc, animated=false, &block)
@@ -239,7 +255,7 @@ module RMExtensions
           layout.subviews = {
             "keyboard_proxy" => @keyboard_proxy
           }
-          x[:bottom] = layout.eq "keyboard_proxy.bottom == 0"
+          x[:bottom] = layout.eq "keyboard_proxy.bottom == #{-RMExtensions.currentKeyboardHeight}"
           x[:height] = layout.eq "keyboard_proxy.height == 0"
         end
         x
@@ -252,9 +268,10 @@ module RMExtensions
 
     # listens for the rmextKeyboardChanged notification and extracts the userInfo to call a friendlier method
     def keyboardChangedInternal(notification)
-      view # force view to load
-      info = notification.userInfo
-      keyboardChanged(info)
+      if isViewLoaded
+        info = notification.userInfo
+        keyboardChanged(info)
+      end
     end
 
     # by default, looks to see if the controller is using the @keyboard_proxy_constraint convention.
@@ -341,6 +358,12 @@ module RMExtensions
     include KeyboardHelpers
     include SetAttributes
 
+    def prepare
+    end
+
+    def loaded
+    end
+
     def init
       s = super
       if RMExtensions.ios_version >= 7.0
@@ -349,6 +372,7 @@ module RMExtensions
       end
       NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
       listenForKeyboardChanged
+      prepare
       s
     end
 
@@ -356,8 +380,9 @@ module RMExtensions
     end
 
     def viewDidLoad
-      s = super
       view.backgroundColor = UIColor.whiteColor
+      s = super
+      loaded
       s
     end
 
@@ -412,15 +437,23 @@ module RMExtensions
       end
       NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
       listenForKeyboardChanged
+      prepare
       s
+    end
+
+    def prepare
+    end
+
+    def loaded
     end
 
     def refresh
     end
 
     def viewDidLoad
-      s = super
       view.backgroundColor = UIColor.whiteColor
+      s = super
+      loaded
       s
     end
 
@@ -606,6 +639,7 @@ module RMExtensions
       fittedView.backgroundColor = UIColor.clearColor
       fittedView.followView = followView
       followView.fittedView = fittedView
+      # add a subview to parent called followView
       RMExtensions::Layout.new do |layout|
         layout.view parent
         layout.subviews "x" => followView
@@ -618,18 +652,9 @@ module RMExtensions
       end
       x = new
       x.contentView = fittedView
+      # add a subview to scrollView called contentView
       RMExtensions::Layout.new do |layout|
         layout.view x
-        layout.subviews "x" => fittedView
-        layout.eqs %Q{
-          x.top == 0
-          x.right == 0
-          x.bottom == 0
-          x.left == 0
-        }
-      end
-      RMExtensions::Layout.new do |layout|
-        layout.view parent
         layout.subviews "x" => fittedView
         layout.eqs %Q{
           x.top == 0
