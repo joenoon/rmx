@@ -4,6 +4,7 @@ module RMExtensions
     rmext_weak_attr_accessor :value
 
     def initialize(value)
+      @value_desc = value.rmext_object_desc
       self.value = value
     end
 
@@ -19,7 +20,7 @@ module RMExtensions
       if val = value
         value.rmext_object_desc
       else
-        "(deallocated)"
+        "(deallocated)#{@value_desc}"
       end
     end
 
