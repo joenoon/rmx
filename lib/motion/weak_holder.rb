@@ -18,7 +18,7 @@ module RMExtensions
 
     def inspect
       if val = value
-        value.rmext_object_desc
+        "(weak)#{@value_desc}"
       else
         "(deallocated)#{@value_desc}"
       end
