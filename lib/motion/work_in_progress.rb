@@ -742,9 +742,9 @@ module RMExtensions
 
     include CommonMethods
 
-    rmext_weak_attr_accessor :tableView
+    rmext_weak_attr_accessor :tableView, :delegate
 
-    attr_accessor :registered_reuse_identifiers
+    attr_accessor :registered_reuse_identifiers, :sections
 
     def self.forTable(tableView)
       x = new
@@ -764,21 +764,10 @@ module RMExtensions
     end
 
     def initialize
-      @data = {}
       @sections = []
       @heights = {}
       @registered_reuse_identifiers = {}
       self
-    end
-
-    def data
-      @data
-    end
-
-    def sections=(sections)
-      @sections = sections
-      sections.each { |s| @data[s] ||= [] }
-      sections
     end
 
     def animateUpdates
@@ -804,29 +793,8 @@ module RMExtensions
 
     def reloadData
       if tv = tableView
-        p "reloadData"
         tv.reloadData
       end
-    end
-
-    def click(&block)
-      @click_block = block.weak!
-    end
-
-    def cell_for(&block)
-      @cell_for_block = block.weak!
-    end
-
-    def header_for(&block)
-      @header_for_block = block.weak!
-    end
-
-    def cell_height_for(&block)
-      @cell_height_for_block = block.weak!
-    end
-
-    def header_height_for(&block)
-      @header_height_for_block = block.weak!
     end
 
     def set_size_for_data(data, reuseIdentifier:reuseIdentifier)
@@ -845,16 +813,13 @@ module RMExtensions
 
     def tableView(tableView, cellForRowAtIndexPath:indexPath)
       rmext_assert_main_thread!
-      unless @cell_for_block
-        raise "No cell_for block given"
-      end
       context = {
         :tableHandler => self,
         :tableView => tableView,
         :indexPath => indexPath,
-        :data => @data[@sections[indexPath.section]][indexPath.row]
+        :data => delegate.tableHandler(self, dataForSectionName:@sections[indexPath.section])[indexPath.row]
       }
-      res = @cell_for_block.call(context)
+      res = delegate.tableHandler(self, cellOptsForContext:context)
       if res.is_a?(Hash)
         context.update(res)
         unless res[:reuseIdentifier]
@@ -871,16 +836,18 @@ module RMExtensions
 
     def tableView(tableView, heightForRowAtIndexPath:indexPath)
       rmext_assert_main_thread!
-      unless block = (@cell_height_for_block || @cell_for_block)
-        raise "No cell_height_for block given"
-      end
       context = {
         :tableHandler => self,
         :tableView => tableView,
         :indexPath => indexPath,
-        :data => @data[@sections[indexPath.section]][indexPath.row]
+        :data => delegate.tableHandler(self, dataForSectionName:@sections[indexPath.section])[indexPath.row]
       }
-      res = block.call(context)
+      res = if @respondsToHeightForContext || delegate.respondsToSelector('tableHandler:heightForContext:')
+        @respondsToHeightForContext = true
+        delegate.tableHandler(self, heightForContext:context)
+      else
+        delegate.tableHandler(self, cellOptsForContext:context)
+      end
       if res.is_a?(Hash)
         context.update(res)
         unless res[:reuseIdentifier]
@@ -911,12 +878,14 @@ module RMExtensions
 
     def tableView(tableView, viewForHeaderInSection:section)
       rmext_assert_main_thread!
-      if @header_for_block
-        res = @header_for_block.call({
+      if @respondsToHeaderForContext || delegate.respondsToSelector('tableHandler:headerForContext:')
+        @respondsToHeaderForContext = true
+        context = {
           :tableHandler => self,
           :tableView => tableView,
           :section => section
-        })
+        }
+        res = delegate.tableHandler(self, headerForContext:context)
         # p "viewForHeaderInSection", section, res
         res
       end
@@ -924,15 +893,14 @@ module RMExtensions
 
     def tableView(tableView, heightForHeaderInSection:section)
       rmext_assert_main_thread!
-      if @header_for_block
-        unless @header_height_for_block
-          raise "No header_height_for block given"
-        end
-        res = @header_height_for_block.call({
+      if @respondsToHeaderHeightForContext || delegate.respondsToSelector('tableHandler:headerHeightForContext:')
+        @respondsToHeaderHeightForContext = true
+        context = {
           :tableHandler => self,
           :tableView => tableView,
           :section => section
-        })
+        }
+        res = delegate.tableHandler(self, headerHeightForContext:context)
         # p "heightForHeaderInSection", section, res
         res
       else
@@ -942,7 +910,7 @@ module RMExtensions
 
     def tableView(tableView, numberOfRowsInSection: section)
       rmext_assert_main_thread!
-      res = @data[@sections[section]].size
+      res = delegate.tableHandler(self, dataForSectionName:@sections[section]).size
       # p "numberOfRowsInSection", res
       res
     end
@@ -956,14 +924,16 @@ module RMExtensions
 
     def tableView(tableView, didSelectRowAtIndexPath:indexPath)
       rmext_assert_main_thread!
-      if @click_block
+      if @respondsToClickForContext || delegate.respondsToSelector('tableHandler:clickForContext:')
+        @respondsToClickForContext = true
         context = {
           :tableHandler => self,
           :tableView => tableView,
           :indexPath => indexPath,
-          :data => @data[@sections[indexPath.section]][indexPath.row]
+          :data => delegate.tableHandler(self, dataForSectionName:@sections[indexPath.section])[indexPath.row]
         }
-        @click_block.call(context)
+        delegate.tableHandler(self, clickForContext:context)
+        tableView.deselectRowAtIndexPath(indexPath, animated:true)
       end
     end
 
