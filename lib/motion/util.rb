@@ -143,7 +143,7 @@ module RMExtensions
       end
 
       def rmext_object_desc
-        "#<#{self.className}:0x#{'%x' % (self.object_id)}(#{self.object_id})>"
+        "#<#{self.className}:(#{self.object_id})>"
       end
 
       # Raises an exception when called from a thread other than the main thread.
