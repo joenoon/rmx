@@ -9,7 +9,8 @@ module RMExtensions
     end
 
     def []=(key, value)
-      super(key, WeakHolder.new(value))
+      super(key, value.nil? ? nil : WeakHolder.new(value))
+      value
     end
 
     def delete(key)
