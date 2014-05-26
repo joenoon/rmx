@@ -4,7 +4,9 @@ module RMExtensions
 
     def [](key)
       if val = super
-        val.value
+        if val = val.value
+          val.retain.autorelease
+        end
       end
     end
 
