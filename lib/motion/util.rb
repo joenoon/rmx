@@ -138,12 +138,18 @@ module RMExtensions
 
     module Util
 
+      def rmext_require_queue!(queue, file, line)
+        unless Dispatch::Queue.current.description == queue.description
+          raise "WRONG QUEUE: #{self.inspect} #{file}:#{line}, #{caller.inspect}"
+        end
+      end
+
       def rmext_own_methods
         (methods - (superclass.methods)).sort
       end
 
       def rmext_object_desc
-        "#<#{self.className}:(#{self.object_id})>"
+        "#<#{self.className}:0x#{'%x' % (self.object_id)}(#{self.object_id})>"
       end
 
       # Raises an exception when called from a thread other than the main thread.

@@ -73,6 +73,10 @@ module RMExtensions
   # automatically.
   class EventsToProxy
 
+    Dispatch.once do
+      @@sync_queue = Dispatch::Queue.new("#{NSBundle.mainBundle.bundleIdentifier}.EventsToProxy.queue1")
+    end
+
     include CommonMethods
 
     rmext_weak_attr_accessor :weak_object
@@ -83,32 +87,36 @@ module RMExtensions
     end
 
     def has_handlers_for!(firing_object)
-      if DEBUG_EVENTS
-        p "CONTEXT:", weak_object.rmext_object_desc, "LISTENING TO:", firing_object.rmext_object_desc
+      @@sync_queue.sync do
+        if DEBUG_EVENTS
+          p "CONTEXT:", weak_object.rmext_object_desc, "LISTENING TO:", firing_object.rmext_object_desc
+        end
+        @has_handlers_for[firing_object] ||= true
       end
-      @has_handlers_for[firing_object] ||= true
     end
 
     def cleanup(firing_object=nil)
-      # p "cleanup caller", caller
-      if firing_object
-        if @has_handlers_for.delete(firing_object)
-          if DEBUG_EVENTS
-            p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
+      @@sync_queue.sync do
+        # p "cleanup caller", caller
+        if firing_object
+          if @has_handlers_for.delete(firing_object)
+            if DEBUG_EVENTS
+              p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
+            end
+            firing_object.rmext_off(weak_object)
           end
-          firing_object.rmext_off(weak_object)
-        end
-      else
-        keys = [] + @has_handlers_for.keys
-        while keys.size > 0
-          firing_object = keys.shift
-          if DEBUG_EVENTS
-            p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
+        else
+          keys = [] + @has_handlers_for.keys
+          while keys.size > 0
+            firing_object = keys.shift
+            if DEBUG_EVENTS
+              p "CONTEXT:", weak_object.rmext_object_desc, "UNLISTENING TO:", firing_object.rmext_object_desc
+            end
+            firing_object.rmext_off(weak_object)
           end
-          firing_object.rmext_off(weak_object)
         end
+        true
       end
-      true
     end
 
   end
@@ -116,6 +124,11 @@ module RMExtensions
   # Proxy class used to hold the actual handlers and contexts of handlers.
   # When the real class deallocates, all handlers are removed.
   class EventsFromProxy
+
+    Dispatch.once do
+      @@sync_queue = Dispatch::Queue.new("#{NSBundle.mainBundle.bundleIdentifier}.EventsFromProxy.queue1")
+      @@async_queue = Dispatch::Queue.new("#{NSBundle.mainBundle.bundleIdentifier}.EventsFromProxy.queue2")
+    end
 
     include CommonMethods
 
@@ -145,18 +158,21 @@ module RMExtensions
     # end
 
     def on(event, opts={}, &block)
-      return if event.nil? || block.nil?
-      event = event.to_s
-      context = block.owner
-      block.weak!
-      if DEBUG_EVENTS
-        p "ON:", event, "opts:", opts
+      @@sync_queue.sync do
+        next if event.nil? || block.nil?
+        event = event.to_s
+        context = block.owner
+        block.weak!
+        if DEBUG_EVENTS
+          p "ON:", event, "opts:", opts
+        end
+        @events[context] ||= {}
+        @events[context][event] ||= {}
+        @events[context][event][block] = opts.dup
+        @events[context][event][block][:limit] ||= -1
+        # i.e.: controller/view has handlers for object
+        context.rmext_events_to_proxy.has_handlers_for!(weak_object)
       end
-      @events[context] ||= {}
-      @events[context][event] ||= {}
-      @events[context][event][block] = opts[:limit] || -1
-      # i.e.: controller/view has handlers for object
-      context.rmext_events_to_proxy.has_handlers_for!(weak_object)
     end
 
     def now_and_on(event, opts={}, &block)
@@ -165,56 +181,58 @@ module RMExtensions
     end
 
     def off(event=nil, context=nil, &block)
-      if event.is_a?(String) || event.is_a?(Symbol)
-        event = event.to_s
-        if block
-          context = block.owner
-          if context_events = @events[context]
-            if context_event_blocks = context_events[event]
-              if DEBUG_EVENTS
-                p "remove the one block for the event in the blocks #owner", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_event_blocks
+      @@sync_queue.sync do
+        if event.is_a?(String) || event.is_a?(Symbol)
+          event = event.to_s
+          if block
+            context = block.owner
+            if context_events = @events[context]
+              if context_event_blocks = context_events[event]
+                if DEBUG_EVENTS
+                  p "remove the one block for the event in the blocks #owner", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_event_blocks
+                end
+                context_event_blocks.delete block
               end
-              context_event_blocks.delete block
             end
-          end
-        elsif context
-          if context_events = @events[context]
-            if DEBUG_EVENTS
-              p "remove all handlers for the given event in the given context", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
-            end
-            context_events.delete(event)
-          end
-        else
-          contexts = @events.keys
-          while context = contexts.pop
+          elsif context
             if context_events = @events[context]
               if DEBUG_EVENTS
-                p "remove all handlers for the event in all contexts known", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
+                p "remove all handlers for the given event in the given context", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
               end
-              context_events.delete event
+              context_events.delete(event)
+            end
+          else
+            contexts = @events.keys
+            while context = contexts.pop
+              if context_events = @events[context]
+                if DEBUG_EVENTS
+                  p "remove all handlers for the event in all contexts known", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
+                end
+                context_events.delete event
+              end
             end
           end
+        elsif event
+          context = event
+          if DEBUG_EVENTS
+            p "event is really a context. remove all events and handlers for the context", "CONTEXT:", context.rmext_object_desc, "BLOCKS:", @events[context]
+          end
+          @events.delete(context)
+        else
+          if DEBUG_EVENTS
+            p "remove everything on", weak_object.rmext_object_desc
+          end
+          @events.clear
         end
-      elsif event
-        context = event
-        if DEBUG_EVENTS
-          p "event is really a context. remove all events and handlers for the context", "CONTEXT:", context.rmext_object_desc, "BLOCKS:", @events[context]
-        end
-        @events.delete(context)
-      else
-        if DEBUG_EVENTS
-          p "remove everything on", weak_object.rmext_object_desc
-        end
-        @events.clear
+        nil
       end
-      nil
     end
 
     def trigger(event, *values)
       # if DEBUG_EVENTS
       #   p "TRIGGER:", event, values #, "@events", @events
       # end
-      rmext_inline_or_on_main_q do
+      @@async_queue.async do
         next if event.nil?
         event = event.to_s
         contexts = @events.keys
@@ -234,9 +252,19 @@ module RMExtensions
               if DEBUG_EVENTS
                 p "TRIGGER:", event, "OBJECT:", weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc, "BLOCKS SIZE:", blocks.size
               end
-              while block = blocks.pop
-                limit = event_blocks[block]
-                block.call(*values)
+              while blocks.size > 0
+                block = blocks.shift
+                limit = event_blocks[block][:limit]
+                queue = event_blocks[block][:queue]
+                if queue == :async
+                  queue = @@async_queue
+                elsif queue == :main
+                  queue = Dispatch::Queue.main
+                end
+                queue ||= Dispatch::Queue.main
+                # if queue == Dispatch::Queue.main
+                #   p "MAIN:", event, "OBJECT:", weak_object.rmext_object_desc, "CONTEXT:", context.rmext_object_desc
+                # end
                 if limit == 1
                   # off
                   if DEBUG_EVENTS
@@ -244,7 +272,14 @@ module RMExtensions
                   end
                   off(event, context, &block)
                 elsif limit > 1
-                  event_blocks[block] -= 1
+                  @@sync_queue.sync do
+                    event_blocks[block][:limit] -= 1
+                  end
+                end
+                context.retain
+                queue.barrier_async do
+                  block.call(*values)
+                  context.autorelease
                 end
               end
             end
