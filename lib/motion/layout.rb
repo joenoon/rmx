@@ -51,11 +51,14 @@ module RMExtensions
     # RMExtensions::Layout.new do |layout|
     #   ...
     # end
-    def initialize
+    def initialize(&block)
+      @block_owner = WeakRef.new(block.owner) if block
+      block.weak!
       @visible_items = []
       @constraints = {}
-      if block_given?
-        yield self
+      unless block.nil?
+        block.call(self)
+        block = nil
       end
     end
 
@@ -342,6 +345,10 @@ module RMExtensions
     def view_for_item(item)
       if item == "view"
         @view
+      elsif item == "topLayoutGuide"
+        @block_owner && @block_owner.weakref_alive? && @block_owner.topLayoutGuide
+      elsif item == "bottomLayoutGuide"
+        @block_owner && @block_owner.weakref_alive? && @block_owner.bottomLayoutGuide
       elsif v = (@subviews && @subviews[item])
         v
       end
