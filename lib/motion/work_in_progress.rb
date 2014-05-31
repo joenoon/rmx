@@ -137,7 +137,7 @@ module RMExtensions
           end
         end
       end
-      
+
     end
     extend FactoryMethods
 
@@ -415,8 +415,8 @@ module RMExtensions
     def init
       s = super
       if RMExtensions.ios_version >= 7.0
-        self.edgesForExtendedLayout = UIRectEdgeNone
-        self.automaticallyAdjustsScrollViewInsets = false
+        self.edgesForExtendedLayout = UIRectEdgeAll
+        self.automaticallyAdjustsScrollViewInsets = true
       end
       NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
       listenForKeyboardChanged
