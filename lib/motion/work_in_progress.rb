@@ -115,57 +115,29 @@ module RMExtensions
         block = opts[:completion]
         view_controller = opts[:view_controller]
         navigationController = view_controller.navigationController
-        dismiss_opts = {
-          :animated => animated,
-          :view_controller => view_controller,
-          :presentedViewController => view_controller.presentedViewController,
-          :presentingViewController => view_controller.presentingViewController,
-          :navigationController => view_controller.navigationController
-        }
-        perform_dismissal = lambda do
-          performed = false
-          # p "*"*100
-          # p "dismiss", dismiss_opts
-          if view_controller.presentingViewController
-            # p "presentingViewController.dismissViewControllerAnimated(animated, completion:nil)"
-            rmext_on_main_q do
-              view_controller.dismissViewControllerAnimated(animated, completion:block)
-            end
-            performed = true
-          elsif navigationController
-            # p "navigationController strategy"
-            if index = navigationController.viewControllers.index(view_controller)
-              before_index = index - 1
-              before_index = 0 if index < 0
-              pop_to_controller = navigationController.viewControllers[before_index]
-              if pop_to_controller && pop_to_controller != navigationController.viewControllers.last
-                # p "pop_to_controller", pop_to_controller
-                # p "navigationController.popToViewController(pop_to_controller, animated:animated)"
-                rmext_on_main_q do
-                  if block
-                    view_controller.whenOrIfViewState(:viewDidDisappear) do
-                      block.call
-                    end
-                  end
-                  navigationController.popToViewController(pop_to_controller, animated:animated)
-                end
-                performed = true
+
+
+        if view_controller.presentingViewController
+          rmext_on_main_q do
+            view_controller.dismissViewControllerAnimated(animated, completion:block)
+          end
+        elsif navigationController
+          if index = navigationController.viewControllers.index(view_controller)
+            before_index = index - 1
+            before_index = 0 if index < 0
+            pop_to_controller = navigationController.viewControllers[before_index]
+            if pop_to_controller && pop_to_controller != navigationController.viewControllers.last
+              # p "pop_to_controller", pop_to_controller
+              # p "navigationController.popToViewController(pop_to_controller, animated:animated)"
+              rmext_on_main_q do
+                rmext_once(:done_animating, &block) if block
+                navigationController.popToViewController(pop_to_controller, animated:animated)
               end
             end
           end
-          if !performed
-            p "DID NOT PERFORM dismiss", dismiss_opts
-          end
-          # p "*"*100
-        end
-        if view_controller.respondsToSelector('whenOrIfViewState:')
-          view_controller.whenOrIfViewState(:viewDidAppear) do
-            perform_dismissal.call
-          end
-        else
-          perform_dismissal.call
         end
       end
+      
     end
     extend FactoryMethods
 
@@ -298,6 +270,82 @@ module RMExtensions
 
     include CommonMethods
     include ViewControllerPresentation
+
+    def animating?
+      !!@animating
+    end
+
+    def navigationController(navigationController, willShowViewController:view_controller, animated:animated)
+      @willShows ||= []
+      @willShows << view_controller
+      @animating = @willShows.size != 0
+      navigationBar.userInteractionEnabled = !animating?
+      # p "animating", animated, view_controller, @willShows.size
+    end
+
+    def navigationController(navigationController, didShowViewController:view_controller, animated:animated)
+      if @willShows.delete(view_controller)
+        # p "DONE animating", animated, view_controller, @willShows.size
+        rmext_on_main_q do
+          @animating = @willShows.size != 0
+          navigationBar.userInteractionEnabled = !animating?
+          if !@animating
+            rmext_trigger(:done_animating)
+          end
+        end
+      end
+    end
+
+    def pushViewController(view_controller, animated:animated)
+      if navigationBar.isUserInteractionEnabled
+        super
+      else
+        p "DELAYED pushViewController:animated:", view_controller, animated
+        rmext_once(:done_animating) do
+          p "RESUMED pushViewController:animated:", view_controller, animated
+          pushViewController(view_controller, animated:animated)
+        end
+        nil
+      end
+    end
+
+    def popViewControllerAnimated(animated)
+      if navigationBar.isUserInteractionEnabled
+        super
+      else
+        p "DELAYED popViewControllerAnimated:", animated
+        rmext_once(:done_animating) do
+          p "RESUMED popViewControllerAnimated:", animated
+          popViewControllerAnimated(animated)
+        end
+        nil
+      end
+    end
+
+    def popToRootViewControllerAnimated(animated)
+      if navigationBar.isUserInteractionEnabled
+        super
+      else
+        p "DELAYED popToRootViewControllerAnimated:", animated
+        rmext_once(:done_animating) do
+          p "RESUMED popToRootViewControllerAnimated:", animated
+          popToRootViewControllerAnimated(animated)
+        end
+        nil
+      end
+    end
+    def popToViewController(view_controller, animated:animated)
+      if navigationBar.isUserInteractionEnabled
+        super
+      else
+        p "DELAYED popToViewController:animated:", view_controller, animated
+        rmext_once(:done_animating) do
+          p "RESUMED popToViewController:animated:", view_controller, animated
+          popToViewController(view_controller, animated:animated)
+        end
+        nil
+      end
+    end
 
     def viewDidLoad
       s = super
