@@ -148,10 +148,11 @@ module RMExtensions
               queue = Dispatch::Queue.main
             end
             queue ||= Dispatch::Queue.main
-            context.retain
+            # context.retain
             queue.barrier_async do
               blk.call(*values)
-              context.autorelease
+              blk = nil
+              # context.autorelease
             end
           end
         end
