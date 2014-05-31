@@ -349,7 +349,6 @@ module RMExtensions
 
     def viewDidLoad
       s = super
-      view.backgroundColor = UIColor.whiteColor
       s
     end
 
@@ -414,10 +413,6 @@ module RMExtensions
 
     def init
       s = super
-      if RMExtensions.ios_version >= 7.0
-        self.edgesForExtendedLayout = UIRectEdgeAll
-        self.automaticallyAdjustsScrollViewInsets = true
-      end
       NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
       listenForKeyboardChanged
       prepare
@@ -428,7 +423,6 @@ module RMExtensions
     end
 
     def viewDidLoad
-      view.backgroundColor = UIColor.whiteColor
       s = super
       loaded
       s
@@ -479,10 +473,6 @@ module RMExtensions
 
     def init
       s = super
-      if RMExtensions.ios_version >= 7.0
-        self.edgesForExtendedLayout = UIRectEdgeNone
-        self.automaticallyAdjustsScrollViewInsets = false
-      end
       NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
       listenForKeyboardChanged
       prepare
@@ -499,7 +489,6 @@ module RMExtensions
     end
 
     def viewDidLoad
-      view.backgroundColor = UIColor.whiteColor
       s = super
       loaded
       s
