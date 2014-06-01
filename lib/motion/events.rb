@@ -25,16 +25,15 @@ module RMExtensions
           opts[:limit] ||= -1
           opts[:block_owner] = weak_block_owner
           opts[:unprotected_block] = block
-          protected_block = proc do |*args|
+          wrapped_block = proc do |*args|
             if weak_block_owner.weakref_alive?
               weak_block_owner.retain
               block.call(*args)
               weak_block_owner.autorelease
             end
           end.weak!
-          opts[:protected_block] = protected_block
-          blocks = rmext_events[event] ||= []
-          blocks << opts.dup
+          blocks = rmext_events[event] ||= {}
+          blocks[wrapped_block] = opts.dup
         end
       end
 
@@ -63,19 +62,19 @@ module RMExtensions
                 if DEBUG_EVENTS
                   p "remove the one block for the event in the blocks #owner", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", blocks
                 end
-                blocks.dup.each do |opts|
+                blocks.dup.each_pair do |blk, opts|
                   unless opts[:block_owner].weakref_alive?
                     if DEBUG_EVENTS
                       p "cleanup: stale block"
                     end
-                    blocks.delete(opts)
+                    blocks.delete(blk)
                     next
                   end
                   if opts[:unprotected_block] == block
                     if DEBUG_EVENTS
                       p "delete: matching block"
                     end
-                    blocks.delete(opts)
+                    blocks.delete(blk)
                   end
                 end
               end
@@ -84,19 +83,19 @@ module RMExtensions
                 if DEBUG_EVENTS
                   p "remove all handlers for the given event in the given context", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
                 end
-                blocks.dup.each do |opts|
+                blocks.dup.each_pair do |blk, opts|
                   unless opts[:block_owner].weakref_alive?
                     if DEBUG_EVENTS
                       p "cleanup: stale block"
                     end
-                    blocks.delete(opts)
+                    blocks.delete(blk)
                     next
                   end
                   if opts[:block_owner] == context
                     if DEBUG_EVENTS
                       p "delete: matching context"
                     end
-                    blocks.delete(opts)
+                    blocks.delete(blk)
                   end
                 end
               end
@@ -136,12 +135,12 @@ module RMExtensions
             p "TRIGGER:", event, rmext_events, "OBJECT:", self.rmext_object_desc, "BLOCKS SIZE:", blocks_size
           end
           next unless blocks
-          blocks.dup.each do |opts|
+          blocks.dup.each_pair do |blk, opts|
             unless opts[:block_owner].weakref_alive?
               if DEBUG_EVENTS
                 p "cleanup: stale block"
               end
-              blocks.delete(opts)
+              blocks.delete(blk)
               next
             end
             limit = opts[:limit]
@@ -150,7 +149,7 @@ module RMExtensions
               if DEBUG_EVENTS
                 p "LIMIT REACHED:", event, "OBJECT:", self.rmext_object_desc, "CONTEXT:", opts[:block_owner].rmext_object_desc
               end
-              blocks.delete(opts)
+              blocks.delete(blk)
             elsif limit > 1
               opts[:limit] -= 1
             end
@@ -162,7 +161,6 @@ module RMExtensions
               queue = Dispatch::Queue.main
             end
             queue ||= Dispatch::Queue.main
-            blk = opts[:protected_block]
             queue.barrier_async do
               blk.call(*values)
               blk = nil
