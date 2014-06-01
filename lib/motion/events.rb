@@ -30,7 +30,7 @@ module RMExtensions
               block.call(*args)
               weak_block_owner.autorelease
             end
-          end
+          end.weak!
           blocks = rmext_events[event] ||= {}
           blocks[wrapped_block] = opts.dup
         end
