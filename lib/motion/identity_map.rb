@@ -25,12 +25,6 @@ module RMExtensions
       end
     end
 
-    def keys
-      @queue.sync do
-        return super
-      end
-    end
-
     def values
       @queue.sync do
         return super

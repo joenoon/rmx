@@ -4,8 +4,11 @@ module RMExtensions
 
     def [](key)
       if val = super
-        if val = val.value
-          val.retain.autorelease
+        if _val = val.value
+          _val.retain
+          v = _val
+          _val.release
+          v
         end
       end
     end
@@ -23,9 +26,9 @@ module RMExtensions
 
     def keys
       out = []
-      keys = [] + super
-      while keys.size > 0
-        key = keys.shift
+      _keys = [] + super
+      while _keys.size > 0
+        key = _keys.shift
         if val = self[key]
           out << key
         end
