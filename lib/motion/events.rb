@@ -29,7 +29,7 @@ module RMExtensions
             if weak_block_owner.weakref_alive?
               weak_block_owner.retain
               block.call(*args)
-              weak_block_owner.autorelease
+              weak_block_owner.release
             end
           end.weak!
           blocks = rmext_events[event] ||= {}
@@ -161,9 +161,11 @@ module RMExtensions
               queue = Dispatch::Queue.main
             end
             queue ||= Dispatch::Queue.main
+            retain
             queue.barrier_async do
               blk.call(*values)
               blk = nil
+              release
             end
           end
         end
