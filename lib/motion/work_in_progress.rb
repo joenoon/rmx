@@ -277,15 +277,17 @@ module RMExtensions
 
     def navigationController(navigationController, willShowViewController:view_controller, animated:animated)
       @willShows ||= []
-      @willShows << view_controller
+      weak = view_controller.respond_to?(:weakref_alive?) ? view_controller : WeakRef.new(view_controller)
+      @willShows << weak
       @animating = @willShows.size != 0
       navigationBar.userInteractionEnabled = !animating?
       # p "animating", animated, view_controller, @willShows.size
     end
 
     def navigationController(navigationController, didShowViewController:view_controller, animated:animated)
-      if @willShows.delete(view_controller)
+      if index = @willShows.index(view_controller)
         # p "DONE animating", animated, view_controller, @willShows.size
+        @willShows.delete_at(index)
         rmext_on_main_q do
           @animating = @willShows.size != 0
           navigationBar.userInteractionEnabled = !animating?
