@@ -3,12 +3,9 @@ module RMExtensions
   class StrongToWeakHash < Hash
 
     def [](key)
-      if val = super
-        if _val = val.value
-          _val.retain
-          v = _val
-          _val.release
-          v
+      if weak = super
+        if val = weak.value
+          val.retain.autorelease
         end
       end
     end

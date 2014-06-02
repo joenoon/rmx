@@ -9,31 +9,24 @@ module RMExtensions
 
       def rmext_events
         rmext_require_queue!(SYNC_QUEUE, __FILE__, __LINE__) if DEBUG_QUEUES
-        @rmext_events ||= {}
+        @rmext_events
       end
 
       # register a callback when an event is triggered on this object.
       def rmext_on(event, opts={}, &block)
         SYNC_QUEUE.sync do
           next if event.nil? || block.nil?
+          @rmext_events ||= {}
           event = event.to_s
           if DEBUG_EVENTS
             p "ON:", event, "opts:", opts
           end
-          weak_block_owner = WeakRef.new(block.owner)
+          weak_block_owner = block.owner.respond_to?(:weakref_alive?) ? block.owner : WeakRef.new(block.owner)
           block.weak!
           opts[:limit] ||= -1
           opts[:block_owner] = weak_block_owner
-          opts[:unprotected_block] = block
-          wrapped_block = proc do |*args|
-            if weak_block_owner.weakref_alive?
-              weak_block_owner.retain
-              block.call(*args)
-              weak_block_owner.release
-            end
-          end.weak!
-          blocks = rmext_events[event] ||= {}
-          blocks[wrapped_block] = opts.dup
+          blocks = @rmext_events[event] ||= {}
+          blocks[block] = opts.dup
         end
       end
 
@@ -55,22 +48,27 @@ module RMExtensions
       # @model.rmext_off                   # remove all events in all known contexts
       def rmext_off(event=nil, context=nil, &block)
         SYNC_QUEUE.sync do
+          next unless @rmext_events
           if event.is_a?(String) || event.is_a?(Symbol)
             event = event.to_s
             if block
-              if blocks = rmext_events[event]
+              if blocks = @rmext_events[event]
                 if DEBUG_EVENTS
                   p "remove the one block for the event in the blocks #owner", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", blocks
                 end
-                blocks.dup.each_pair do |blk, opts|
-                  unless opts[:block_owner].weakref_alive?
+                block_keys = blocks.keys.dup
+                while block_keys.size > 0
+                  blk = block_keys.shift
+                  opts = blocks[blk]
+                  block_owner = opts[:block_owner]
+                  unless block_owner.weakref_alive?
                     if DEBUG_EVENTS
                       p "cleanup: stale block"
                     end
                     blocks.delete(blk)
                     next
                   end
-                  if opts[:unprotected_block] == block
+                  if blk == block
                     if DEBUG_EVENTS
                       p "delete: matching block"
                     end
@@ -79,19 +77,23 @@ module RMExtensions
                 end
               end
             elsif context
-              if blocks = rmext_events[event]
+              if blocks = @rmext_events[event]
                 if DEBUG_EVENTS
                   p "remove all handlers for the given event in the given context", "EVENT:", event, "CONTEXT:", context.rmext_object_desc, "BLOCKS:", context_events
                 end
-                blocks.dup.each_pair do |blk, opts|
-                  unless opts[:block_owner].weakref_alive?
+                block_keys = blocks.keys.dup
+                while block_keys.size > 0
+                  blk = block_keys.shift
+                  opts = blocks[blk]
+                  block_owner = opts[:block_owner]
+                  unless block_owner.weakref_alive?
                     if DEBUG_EVENTS
                       p "cleanup: stale block"
                     end
                     blocks.delete(blk)
                     next
                   end
-                  if opts[:block_owner] == context
+                  if block_owner == context
                     if DEBUG_EVENTS
                       p "delete: matching context"
                     end
@@ -103,21 +105,23 @@ module RMExtensions
               if DEBUG_EVENTS
                 p "remove all handlers for the event in all contexts known", "EVENT:", event
               end
-              rmext_events.delete event
+              @rmext_events.delete event
             end
           elsif event
             context = event
             if DEBUG_EVENTS
               p "event is really a context. remove all events and handlers for the context", "CONTEXT:", context.rmext_object_desc
             end
-            rmext_events.keys.dup.each do |e|
+            event_keys = @rmext_events.keys.dup
+            while event_keys.size > 0
+              e = event_keys.shift
               rmext_off(e, context)
             end
           else
             if DEBUG_EVENTS
               p "remove all events"
             end
-            rmext_events.clear
+            @rmext_events.clear
           end
           nil
         end
@@ -127,16 +131,21 @@ module RMExtensions
       # trigger an event with value on this object
       def rmext_trigger(event, *values)
         SYNC_QUEUE.sync do
-          next if event.nil?
+          next unless @rmext_events
           event = event.to_s
-          blocks = rmext_events[event]
+          blocks = @rmext_events[event]
           if DEBUG_EVENTS
             blocks_size = blocks ? blocks.size : 0
-            p "TRIGGER:", event, rmext_events, "OBJECT:", self.rmext_object_desc, "BLOCKS SIZE:", blocks_size
+            p "TRIGGER:", event, @rmext_events, "OBJECT:", self.rmext_object_desc, "BLOCKS SIZE:", blocks_size
           end
           next unless blocks
-          blocks.dup.each_pair do |blk, opts|
-            unless opts[:block_owner].weakref_alive?
+          retain.autorelease
+          block_keys = blocks.keys.dup
+          while block_keys.size > 0
+            blk = block_keys.shift
+            opts = blocks[blk]
+            block_owner = opts[:block_owner]
+            unless block_owner.weakref_alive?
               if DEBUG_EVENTS
                 p "cleanup: stale block"
               end
@@ -161,11 +170,11 @@ module RMExtensions
               queue = Dispatch::Queue.main
             end
             queue ||= Dispatch::Queue.main
-            retain
             queue.barrier_async do
-              blk.call(*values)
-              blk = nil
-              release
+              if block_owner.weakref_alive?
+                block_owner.retain.autorelease
+                blk.retain.autorelease.call(*values)
+              end
             end
           end
         end

@@ -12,7 +12,7 @@ module RMExtensions
           define_method(attr) do
             if ref = instance_variable_get("@#{attr}")
               if ref.weakref_alive?
-                ref
+                ref.retain.autorelease
               else
                 instance_variable_set("@#{attr}", nil)
                 nil
