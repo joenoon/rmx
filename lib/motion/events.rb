@@ -16,13 +16,16 @@ module RMExtensions
       def rmext_on(event, opts={}, &block)
         SYNC_QUEUE.sync do
           next if event.nil? || block.nil?
-          @rmext_events ||= {}
+          unless @rmext_events
+            @rmext_events = {}
+          end
           event = event.to_s
           if DEBUG_EVENTS
             p "ON:", event, "opts:", opts
           end
-          weak_block_owner = block.owner.respond_to?(:weakref_alive?) ? block.owner : WeakRef.new(block.owner)
-          block.weak!
+          block_owner = block.owner.retain.autorelease
+          weak_block_owner = block_owner.respond_to?(:weakref_alive?) ? block_owner : WeakRef.new(block_owner)
+          block.weak! unless opts[:strong]
           opts[:limit] ||= -1
           opts[:block_owner] = weak_block_owner
           blocks = @rmext_events[event] ||= {}
