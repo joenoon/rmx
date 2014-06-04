@@ -130,7 +130,7 @@ module RMExtensions
               # p "pop_to_controller", pop_to_controller
               # p "navigationController.popToViewController(pop_to_controller, animated:animated)"
               rmext_on_main_q do
-                rmext_once(:done_animating, &block) if block
+                navigationController.rmext_once(:done_animating, &block) if block
                 navigationController.popToViewController(pop_to_controller, animated:animated)
               end
             end
@@ -272,36 +272,26 @@ module RMExtensions
     include ViewControllerPresentation
 
     def animating?
-      !!@animating
-    end
-
-    def navigationController(navigationController, willShowViewController:view_controller, animated:animated)
-      @willShows ||= []
-      weak = view_controller.respond_to?(:weakref_alive?) ? view_controller : WeakRef.new(view_controller)
-      @willShows << weak
-      @animating = @willShows.size != 0
-      navigationBar.userInteractionEnabled = !animating?
-      # p "animating", animated, view_controller, @willShows.size
+      if vc = viewControllers.last
+        vc != @lastShownViewController
+      end
     end
 
     def navigationController(navigationController, didShowViewController:view_controller, animated:animated)
-      if index = @willShows.index(view_controller)
-        # p "DONE animating", animated, view_controller, @willShows.size
-        @willShows.delete_at(index)
-        rmext_on_main_q do
-          @animating = @willShows.size != 0
-          navigationBar.userInteractionEnabled = !animating?
-          if !@animating
-            rmext_trigger(:done_animating)
-          end
+      @lastShownViewController = view_controller.respond_to?(:weakref_alive?) ? view_controller : WeakRef.new(view_controller)
+      Dispatch::Queue.main.async do
+        unless animating?
+          navigationBar.userInteractionEnabled = true
+          rmext_trigger(:done_animating)
         end
       end
     end
 
     def pushViewController(view_controller, animated:animated)
-      if navigationBar.isUserInteractionEnabled
+      unless animating?
         super
       else
+        navigationBar.userInteractionEnabled = false
         p "DELAYED pushViewController:animated:", view_controller, animated
         rmext_once(:done_animating) do
           p "RESUMED pushViewController:animated:", view_controller, animated
@@ -312,9 +302,10 @@ module RMExtensions
     end
 
     def popViewControllerAnimated(animated)
-      if navigationBar.isUserInteractionEnabled
+      unless animating?
         super
       else
+        navigationBar.userInteractionEnabled = false
         p "DELAYED popViewControllerAnimated:", animated
         rmext_once(:done_animating) do
           p "RESUMED popViewControllerAnimated:", animated
@@ -325,9 +316,10 @@ module RMExtensions
     end
 
     def popToRootViewControllerAnimated(animated)
-      if navigationBar.isUserInteractionEnabled
+      unless animating?
         super
       else
+        navigationBar.userInteractionEnabled = false
         p "DELAYED popToRootViewControllerAnimated:", animated
         rmext_once(:done_animating) do
           p "RESUMED popToRootViewControllerAnimated:", animated
@@ -337,9 +329,10 @@ module RMExtensions
       end
     end
     def popToViewController(view_controller, animated:animated)
-      if navigationBar.isUserInteractionEnabled
+      unless animating?
         super
       else
+        navigationBar.userInteractionEnabled = false
         p "DELAYED popToViewController:animated:", view_controller, animated
         rmext_once(:done_animating) do
           p "RESUMED popToViewController:animated:", view_controller, animated
