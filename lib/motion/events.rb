@@ -14,7 +14,9 @@ module RMExtensions
 
       # register a callback when an event is triggered on this object.
       def rmext_on(event, opts={}, &block)
+        retain.autorelease
         SYNC_QUEUE.sync do
+          retain.autorelease
           next if event.nil? || block.nil?
           unless @rmext_events
             @rmext_events = {}
@@ -34,6 +36,7 @@ module RMExtensions
       end
 
       def rmext_now_and_on(event, opts={}, &block)
+        retain.autorelease
         rmext_block_on_main_q(block)
         rmext_on(event, opts, &block)
       end
@@ -50,7 +53,9 @@ module RMExtensions
       # @model.rmext_off(self)             # remove all events in context "self"
       # @model.rmext_off                   # remove all events in all known contexts
       def rmext_off(event=nil, context=nil, &block)
+        retain.autorelease
         SYNC_QUEUE.sync do
+          retain.autorelease
           next unless @rmext_events
           if event.is_a?(String) || event.is_a?(Symbol)
             event = event.to_s
@@ -133,7 +138,9 @@ module RMExtensions
 
       # trigger an event with value on this object
       def rmext_trigger(event, *values)
+        retain.autorelease
         SYNC_QUEUE.sync do
+          retain.autorelease
           next unless @rmext_events
           event = event.to_s
           blocks = @rmext_events[event]
