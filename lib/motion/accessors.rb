@@ -20,7 +20,7 @@ module RMExtensions
             end
           end
           define_method("#{attr}=") do |val|
-            instance_variable_set("@#{attr}", val.nil? ? nil : WeakRef.new(val))
+            instance_variable_set("@#{attr}", val.nil? ? nil : WeakRef.new(val.retain.autorelease))
             val
           end
         end
