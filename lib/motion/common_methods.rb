@@ -7,7 +7,7 @@ module RMExtensions
 
     def dealloc
       if DEBUG_DEALLOC
-        p " - dealloc!"
+        p " - dealloc! #{NSThread.currentThread.isMainThread ? "" : "(queue: #{Dispatch::Queue.current.description})"}"
       end
       rmext_dealloc
       super

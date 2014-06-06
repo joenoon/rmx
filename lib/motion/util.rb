@@ -138,6 +138,16 @@ module RMExtensions
 
     module Util
 
+      def rmext_noop_on_main
+        my_self = self
+        Dispatch::Queue.main.async do
+          # p "NOOP!"
+          my_self.nil?
+          my_self = nil
+        end
+        self
+      end
+
       def rmext_require_queue!(queue, file, line)
         unless Dispatch::Queue.current.description == queue.description
           raise "WRONG QUEUE: #{self.inspect} #{file}:#{line}, #{caller.inspect}"
@@ -155,7 +165,7 @@ module RMExtensions
       # Raises an exception when called from a thread other than the main thread.
       # Good for development and experimenting.
       def rmext_assert_main_thread!
-        raise "This method must be called on the main thread." unless NSThread.currentThread.isMainThread
+        raise "Expected main thread. #{rmext_object_desc.inspect} / #{Dispatch::Queue.current.description}" unless NSThread.currentThread.isMainThread
       end
 
       # Shortcut to instance_variable_get and instance_variable_get:

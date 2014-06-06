@@ -269,6 +269,12 @@ module RMExtensions
   class NavigationController < UINavigationController
 
     include CommonMethods
+
+    def dealloc
+      rmext_assert_main_thread!
+      super
+    end
+
     include ViewControllerPresentation
 
     def animating?
@@ -396,6 +402,12 @@ module RMExtensions
   class TableViewController < UITableViewController
 
     include CommonMethods
+
+    def dealloc
+      rmext_assert_main_thread!
+      super
+    end
+
     include ViewControllerPresentation
     include KeyboardHelpers
     include SetAttributes
@@ -462,6 +474,12 @@ module RMExtensions
   class ViewController < UIViewController
 
     include CommonMethods
+
+    def dealloc
+      rmext_assert_main_thread!
+      super
+    end
+
     include ViewControllerPresentation
     include KeyboardHelpers
     include SetAttributes
@@ -599,6 +617,12 @@ module RMExtensions
   class View < UIView
 
     include CommonMethods
+
+    def dealloc
+      rmext_assert_main_thread!
+      super
+    end
+
     include SetAttributes
 
     attr_accessor :updatedSize, :reportSizeChanges
@@ -682,6 +706,12 @@ module RMExtensions
   end
 
   class ActionSheet < UIActionSheet
+
+    def dealloc
+      rmext_assert_main_thread!
+      super
+    end
+
 
     def init
       s = super
@@ -986,6 +1016,12 @@ module RMExtensions
   class TableViewCell < UITableViewCell
 
     include CommonMethods
+
+    def dealloc
+      rmext_assert_main_thread!
+      super
+    end
+    
 
     rmext_weak_attr_accessor :tableView
     rmext_weak_attr_accessor :tableHandler
