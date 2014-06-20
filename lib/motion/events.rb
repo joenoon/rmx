@@ -1,61 +1,6 @@
-module RMX
-
-  class Queue
-
-    attr_accessor :queue
-
-    def initialize(_queue)
-      self.queue = _queue
-      self
-    end
-
-    def dispatch_object
-      queue.dispatch_object
-    end
-
-    def after(seconds, &block)
-      queue.after(seconds) do
-        block.call
-      end
-      nil
-    end
-
-    def async(&block)
-      queue.async do
-        block.call
-      end
-      nil
-    end
-  
-    def barrier_async(&block)
-      queue.barrier_async do
-        block.call
-      end
-      nil
-    end
-
-    def sync(&block)
-      block.weak!
-      res = nil
-      queue.sync do
-        res = block.call
-      end
-      res
-    end
-
-    def description
-      queue.description
-    end
-
-  end
-
-  MAIN_QUEUE = ::RMX::Queue.new(Dispatch::Queue.main)
-
-end
-
 module RMExtensions
 
-  EVENTS_QUEUE = RMX::Queue.new(Dispatch::Queue.new("RMX.EventsFromProxy"))
+  EVENTS_QUEUE = Dispatch::Queue.new("RMX.EventsFromProxy")
 
   module ObjectExtensions
 
@@ -66,15 +11,19 @@ module RMExtensions
       end
 
       def rmext_events_from_proxy
+        res = nil
         EVENTS_QUEUE.sync do
-          rmext_ivar(:rmext_events_from_proxy, &CREATE_EVENT_PROXY)
+          res = rmext_ivar(:rmext_events_from_proxy, &CREATE_EVENT_PROXY)
         end
+        res
       end
 
       def rmext_events_from_proxy?
+        res = nil
         EVENTS_QUEUE.sync do
-          !!@rmext_events_from_proxy
+          res = !!@rmext_events_from_proxy
         end
+        res
       end
 
       # register a callback when an event is triggered on this object.
@@ -133,9 +82,9 @@ module RMExtensions
       if q == :async
         q = EVENTS_QUEUE
       elsif q == :main
-        q = RMX::MAIN_QUEUE
+        q = Dispatch::Queue.main
       end
-      q ||= RMX::MAIN_QUEUE
+      q ||= Dispatch::Queue.main
       q
     end
 
