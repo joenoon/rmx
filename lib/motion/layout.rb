@@ -52,8 +52,7 @@ module RMExtensions
     #   ...
     # end
     def initialize(&block)
-      @block_owner = WeakRef.new(block.owner) if block
-      block.weak!
+      @block_owner = block.owner if block
       @visible_items = []
       @constraints = {}
       unless block.nil?
@@ -346,9 +345,9 @@ module RMExtensions
       if item == "view"
         @view
       elsif item == "topLayoutGuide"
-        @block_owner && @block_owner.weakref_alive? && @block_owner.topLayoutGuide
+        @block_owner && @block_owner.topLayoutGuide
       elsif item == "bottomLayoutGuide"
-        @block_owner && @block_owner.weakref_alive? && @block_owner.bottomLayoutGuide
+        @block_owner && @block_owner.bottomLayoutGuide
       elsif v = (@subviews && @subviews[item])
         v
       end

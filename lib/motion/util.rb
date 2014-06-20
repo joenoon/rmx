@@ -138,19 +138,9 @@ module RMExtensions
 
     module Util
 
-      def rmext_noop_on_main
-        my_self = self
-        Dispatch::Queue.main.async do
-          # p "NOOP!"
-          my_self.nil?
-          my_self = nil
-        end
-        self
-      end
-
       def rmext_require_queue!(queue, file, line)
         unless Dispatch::Queue.current.description == queue.description
-          raise "WRONG QUEUE: #{self.inspect} #{file}:#{line}, #{caller.inspect}"
+          raise "WRONG QUEUE: was: #{Dispatch::Queue.current.description}, expected: #{queue.description}. #{self.inspect} #{file}:#{line}, #{caller.inspect}"
         end
       end
 
@@ -159,7 +149,11 @@ module RMExtensions
       end
 
       def rmext_object_desc
-        "#<#{self.className}:0x#{'%x' % (self.object_id)}(#{self.object_id})>"
+        if RMExtensions::DEBUG
+          cname = self.className.to_s
+          obj_id = '%x' % (self.object_id + 0)
+          res = "#<#{cname}:0x#{obj_id}>"
+        end
       end
 
       # Raises an exception when called from a thread other than the main thread.
@@ -171,14 +165,26 @@ module RMExtensions
       # Shortcut to instance_variable_get and instance_variable_get:
       # 1 arg for instance_variable_get
       # 2 args for instance_variable_set
-      def rmext_ivar(*args)
-        if args.size == 1
-          instance_variable_get("@#{args[0]}")
+      def rmext_ivar(*args, &block)
+        return if _isDeallocating
+        out = if args.size == 1
+          if block
+            res = instance_variable_get("@#{args[0]}")
+            unless res
+              res = block.call
+              instance_variable_set("@#{args[0]}", res)
+              res
+            end
+            res
+          else
+            instance_variable_get("@#{args[0]}")
+          end
         elsif args.size == 2
           instance_variable_set("@#{args[0]}", args[1])
         else
           raise "rmext_ivar called with invalid arguments: #{args.inspect}"
         end
+        out
       end
 
       def rmext_nil_instance_variables!

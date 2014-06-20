@@ -5,7 +5,7 @@ module RMExtensions
     def [](key)
       if weak = super
         if val = weak.value
-          val.retain.autorelease
+          val
         end
       end
     end

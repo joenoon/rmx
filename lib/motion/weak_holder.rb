@@ -3,9 +3,10 @@ module RMExtensions
   class WeakHolder
     rmext_weak_attr_accessor :value
 
-    def initialize(value)
-      @value_desc = value.rmext_object_desc
-      self.value = value
+    def initialize(_value)
+      @value_desc = _value.rmext_object_desc
+      self.value = _value
+      self
     end
 
     def hash

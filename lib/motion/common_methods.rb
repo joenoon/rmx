@@ -7,7 +7,7 @@ module RMExtensions
 
     def dealloc
       if DEBUG_DEALLOC
-        p " - dealloc! #{NSThread.currentThread.isMainThread ? "" : "(queue: #{Dispatch::Queue.current.description})"}"
+        p " - dealloc! (queue: #{Dispatch::Queue.current.description})"
       end
       rmext_dealloc
       super
@@ -18,15 +18,15 @@ module RMExtensions
     end
 
     def common_deallocs
-      # rmext_cleanup
-      rmext_nil_instance_variables!
       NSNotificationCenter.defaultCenter.removeObserver(self)
       objs = []
       ivars = [] + instance_variables
       while ivar = ivars.pop
         if v = instance_variable_get(ivar)
-          if v.is_a?(UIView) || v.is_a?(UISearchDisplayController)
-            objs.push v
+          if !v.is_a?(RMExtensions::WeakHolder) || (v = v.value)
+            if v.is_a?(UIView) || v.is_a?(UISearchDisplayController)
+              objs.push v
+            end
           end
         end
       end
@@ -62,13 +62,17 @@ module RMExtensions
     end
 
     def p(*args)
-      args.unshift rmext_object_desc
-      super(*args)
+      if RMExtensions::DEBUG
+        _args = args.dup
+        _args.unshift rmext_object_desc
+        super(*_args)
+      end
     end
 
     def p!(*args)
-      args.push "!"
-      p(*args)
+      _args = args.dup
+      _args.push "!"
+      p(*_args)
     end
 
   end

@@ -17,24 +17,6 @@ module RMExtensions
         Dispatch::Queue.main.async(&block)
       end
 
-      def rmext_noop_after_async_q(queue, &block)
-        queue.async do
-          block.call if block
-          rmext_on_main_q do
-            block = nil
-          end
-        end
-      end
-
-      def rmext_noop_after_sync_q(queue, &block)
-        queue.sync do
-          block.call if block
-          rmext_on_main_q do
-            block = nil
-          end
-        end
-      end
-
       # execute a block on a serial queue, asynchronously.
       def rmext_on_serial_q(q, &block)
         key = "#{NSBundle.mainBundle.bundleIdentifier}.serial.#{q}"

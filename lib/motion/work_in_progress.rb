@@ -269,22 +269,18 @@ module RMExtensions
   class NavigationController < UINavigationController
 
     include CommonMethods
-
-    def dealloc
-      rmext_assert_main_thread!
-      super
-    end
-
     include ViewControllerPresentation
+
+    rmext_weak_attr_accessor :lastShownViewController
 
     def animating?
       if vc = viewControllers.last
-        vc != @lastShownViewController
+        vc != lastShownViewController
       end
     end
 
     def navigationController(navigationController, didShowViewController:view_controller, animated:animated)
-      @lastShownViewController = view_controller.respond_to?(:weakref_alive?) ? view_controller : WeakRef.new(view_controller)
+      self.lastShownViewController = view_controller
       Dispatch::Queue.main.async do
         unless animating?
           navigationBar.userInteractionEnabled = true
@@ -402,12 +398,6 @@ module RMExtensions
   class TableViewController < UITableViewController
 
     include CommonMethods
-
-    def dealloc
-      rmext_assert_main_thread!
-      super
-    end
-
     include ViewControllerPresentation
     include KeyboardHelpers
     include SetAttributes
@@ -474,12 +464,6 @@ module RMExtensions
   class ViewController < UIViewController
 
     include CommonMethods
-
-    def dealloc
-      rmext_assert_main_thread!
-      super
-    end
-
     include ViewControllerPresentation
     include KeyboardHelpers
     include SetAttributes
@@ -617,12 +601,6 @@ module RMExtensions
   class View < UIView
 
     include CommonMethods
-
-    def dealloc
-      rmext_assert_main_thread!
-      super
-    end
-
     include SetAttributes
 
     attr_accessor :updatedSize, :reportSizeChanges
@@ -706,12 +684,6 @@ module RMExtensions
   end
 
   class ActionSheet < UIActionSheet
-
-    def dealloc
-      rmext_assert_main_thread!
-      super
-    end
-
 
     def init
       s = super
@@ -1016,12 +988,6 @@ module RMExtensions
   class TableViewCell < UITableViewCell
 
     include CommonMethods
-
-    def dealloc
-      rmext_assert_main_thread!
-      super
-    end
-    
 
     rmext_weak_attr_accessor :tableView
     rmext_weak_attr_accessor :tableHandler
