@@ -14,8 +14,8 @@ module RMExtensions
 
     module Accessors
 
-      CREATE_WEAK_TABLE = proc do
-        NSHashTable.weakObjectsHashTable
+      CREATE_WEAK_HOLDER = proc do
+        RMExtensions::WeakHolder.new
       end
 
       # creates an +attr_accessor+ like behavior, but the object is
@@ -26,28 +26,13 @@ module RMExtensions
         attrs.each do |attr|
           attr_holder = "#{attr}_holder"
           define_method(attr) do
-            next if _isDeallocating
-            autorelease_pool do
-              next if _isDeallocating
-              if holder = rmext_ivar(attr_holder)
-                autorelease_pool do
-                  next if _isDeallocating
-                  out = if ref = holder.anyObject
-                    if ref._isDeallocating
-                      nil
-                    else
-                      ref
-                    end
-                  end
-                  out
-                end
-              end
+            if holder = rmext_ivar(attr_holder)
+              holder.value
             end
           end
           define_method("#{attr}=") do |val|
-            holder = rmext_ivar(attr_holder, &CREATE_WEAK_TABLE)
-            holder.removeAllObjects
-            holder.addObject(val)
+            holder = rmext_ivar(attr_holder, &CREATE_WEAK_HOLDER)
+            holder.value = val
             val
           end
         end

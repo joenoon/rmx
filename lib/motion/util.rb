@@ -164,27 +164,29 @@ module RMExtensions
 
       # Shortcut to instance_variable_get and instance_variable_get:
       # 1 arg for instance_variable_get
+      # 1 arg and block for instance_variable_get || instance_variable_set
       # 2 args for instance_variable_set
       def rmext_ivar(*args, &block)
-        return if _isDeallocating
-        out = if args.size == 1
+        key = args[0]
+        val = nil
+        if args.size == 1
           if block
-            res = instance_variable_get("@#{args[0]}")
-            unless res
-              res = block.call
-              instance_variable_set("@#{args[0]}", res)
-              res
+            val = instance_variable_get("@#{key}")
+            if val.nil?
+              val = block.call
+              instance_variable_set("@#{key}", val)
+              val
             end
-            res
           else
-            instance_variable_get("@#{args[0]}")
+            val = instance_variable_get("@#{key}")
           end
         elsif args.size == 2
-          instance_variable_set("@#{args[0]}", args[1])
+          val = args[1]
+          instance_variable_set("@#{key}", val)
         else
           raise "rmext_ivar called with invalid arguments: #{args.inspect}"
         end
-        out
+        val
       end
 
       def rmext_nil_instance_variables!

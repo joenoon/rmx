@@ -1,12 +1,22 @@
 module RMExtensions
 
   class WeakHolder
-    rmext_weak_attr_accessor :value
 
-    def initialize(_value)
+    def initialize(_value=nil)
       @value_desc = _value.rmext_object_desc
+      @holder = NSHashTable.weakObjectsHashTable
       self.value = _value
       self
+    end
+
+    def value
+      @holder.anyObject
+    end
+
+    def value=(_value)
+      @holder.removeAllObjects
+      @holder.addObject(_value) unless _value.nil?
+      _value
     end
 
     def hash
