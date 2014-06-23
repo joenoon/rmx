@@ -7,4 +7,3 @@ class RMX
   DEBUG = Env['rmx_debug'] == '1'
 
 end
-::RMExtensions = RMX

@@ -13,6 +13,6 @@ if ENV['rubymotion']
 
   Motion::Project::App.setup do |app|
     # Use `rake config' to see complete project settings.
-    app.name = 'rm-extensions'
+    app.name = 'rmx'
   end
 end

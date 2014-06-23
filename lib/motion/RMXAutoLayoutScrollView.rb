@@ -25,7 +25,7 @@ class RMXAutoLayoutScrollView < UIScrollView
     fittedView.followView = followView
     followView.fittedView = fittedView
     # add a subview to parent called followView
-    RMExtensions::Layout.new do |layout|
+    RMX::Layout.new do |layout|
       layout.view parent
       layout.subviews "x" => followView
       layout.eqs %Q{
@@ -38,7 +38,7 @@ class RMXAutoLayoutScrollView < UIScrollView
     x = new
     x.contentView = fittedView
     # add a subview to scrollView called contentView
-    RMExtensions::Layout.new do |layout|
+    RMX::Layout.new do |layout|
       layout.view x
       layout.subviews "x" => fittedView
       layout.eqs %Q{

@@ -37,7 +37,7 @@ class RMXSegmentedController < RMXViewController
     @active_controller = @controller_indexes[i]
     if @active_controller
       addChildViewController(@active_controller)
-      RMExtensions::Layout.new do |layout|
+      RMX::Layout.new do |layout|
         layout.view = view
         layout.subviews = {
           "content" => @active_controller.view

@@ -1,18 +1,18 @@
-RMExtensions
+RMX
 -----------------
 
 #### Extensions and helpers for dealing with various areas of rubymotion and iOS.
 
-#### [Documentation](https://github.com/joenoon/rm-extensions/wiki/RMExtensions-Documentation)
+#### [Documentation](https://github.com/joenoon/rmx/wiki/RMX-Documentation)
 
-#### [CHANGELOG](https://github.com/joenoon/rm-extensions/wiki/CHANGELOG)
+#### [CHANGELOG](https://github.com/joenoon/rmx/wiki/CHANGELOG)
 
 Installation
 -----------------
 
 Add this line to your application's Gemfile:
 
-    gem 'rm-extensions'
+    gem 'rmx'
 
 And then execute:
 
@@ -32,7 +32,7 @@ If you have a better way to accomplish anything this library is doing, please sh
 License
 -----------------
 
-Please see [LICENSE](https://github.com/joenoon/rm-extensions/blob/master/LICENSE.txt) for licensing details.
+Please see [LICENSE](https://github.com/joenoon/rmx/blob/master/LICENSE.txt) for licensing details.
 
 Author
 -----------------

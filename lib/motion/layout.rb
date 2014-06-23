@@ -48,7 +48,7 @@ class RMX
     attr_accessor :visible_items
 
     # Example:
-    # RMExtensions::Layout.new do |layout|
+    # RMX::Layout.new do |layout|
     #   ...
     # end
     def initialize(&block)
@@ -61,12 +61,12 @@ class RMX
       end
     end
 
-    # reopens the RMExtensions::Layout instance for additional processing, ex:
+    # reopens the RMX::Layout instance for additional processing, ex:
     #   @layout.reopen do |layout|
     #     ...
     #   end
     # note: you would need to store your instance somewhere on creation to be able to reopen it later, ex:
-    #   @layout = RMExtensions::Layout.new do |layout|
+    #   @layout = RMX::Layout.new do |layout|
     #     ...
     #   end
     def reopen
@@ -265,7 +265,7 @@ class RMX
           end
           @view.removeConstraint(constraint)
         else
-          raise "RMExtensions::Layout could not find constraint to remove for internal_ident: `#{internal_ident}` (note: this is an internal representation of the constraint, not the exact string given).  Make sure the constraint was created first."
+          raise "RMX::Layout could not find constraint to remove for internal_ident: `#{internal_ident}` (note: this is an internal representation of the constraint, not the exact string given).  Make sure the constraint was created first."
         end
       elsif constraint = @constraints[internal_ident]
         if debug

@@ -9,7 +9,7 @@ module RMXKeyboardHelpers
     @keyboard_proxy ||= UIView.new
     @keyboard_proxy_constraints ||= begin
       x = {}
-      RMExtensions::Layout.new do |layout|
+      RMX::Layout.new do |layout|
         layout.view = view
         layout.subviews = {
           "keyboard_proxy" => @keyboard_proxy

@@ -19,7 +19,7 @@ describe "Equation-style AutoLayout Constraints" do
     @view = UIView.new
     @label1 = UILabel.new
     @label2 = UILabel.new
-    @layout = RMExtensions::Layout.new
+    @layout = RMX::Layout.new
     @layout.view @view
     @layout.subviews({
       "label1" => @label1,

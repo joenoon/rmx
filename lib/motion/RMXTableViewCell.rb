@@ -11,7 +11,7 @@ class RMXTableViewCell < UITableViewCell
     s = super(style, reuseIdentifier)
     @innerContentView = RMXTableViewCellInnerContentView.new
     @innerContentView.cell = self
-    RMExtensions::Layout.new do |layout|
+    RMX::Layout.new do |layout|
       layout.view = contentView
       layout.subviews = {
         "innerContentView" => @innerContentView
@@ -56,7 +56,7 @@ class RMXTableViewCell < UITableViewCell
   def view=(view)
     @view.removeFromSuperview if @view
     if @view = view
-      RMExtensions::Layout.new do |layout|
+      RMX::Layout.new do |layout|
         layout.view = innerContentView
         layout.subviews = {
           "tile" => view

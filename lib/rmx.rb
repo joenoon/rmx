@@ -1,4 +1,4 @@
-require "rm-extensions/version"
+require "rmx/version"
 
 unless defined?(Motion::Project::Config)
   raise "This file must be required within a RubyMotion project Rakefile."
