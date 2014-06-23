@@ -15,6 +15,7 @@ Motion::Project::App.setup do |app|
     events
     ui
     RMXCommonMethods
+    RMXLongTask
     RMXWeakHolder
     RMXUnsafeUnretainedHolder
     RMXWeakToStrongHash
