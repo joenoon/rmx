@@ -5,7 +5,7 @@ require 'rm-extensions/version'
 
 Gem::Specification.new do |gem|
   gem.name          = "rm-extensions"
-  gem.version       = RMExtensions::VERSION
+  gem.version       = RMX::VERSION
   gem.authors       = ["Joe Noon"]
   gem.email         = ["joenoon@gmail.com"]
   gem.description   = %q{Extensions and helpers for dealing with various areas of rubymotion}

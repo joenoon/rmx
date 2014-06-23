@@ -6,27 +6,45 @@ end
 
 Motion::Project::App.setup do |app|
   %w(
+    RMXObjectExtensions
+    base
     env
-    common_methods
     layout
     util
     accessors
-    weak_holder
-    weak_to_strong_hash
-    strong_to_weak_hash
-    identity_map
     events
-    queues
-    work_in_progress
+    ui
+    RMXCommonMethods
+    RMXWeakHolder
+    RMXUnsafeUnretainedHolder
+    RMXWeakToStrongHash
+    RMXStrongToWeakHash
+    RMXSynchronizedStrongToWeakHash
+    RMXEventsFromProxy
+    RMXExecutionBlock
+    RMXSetAttributes
+    RMXViewControllerPresentation
+    RMXKeyboardHelpers
+    RMXNavigationController
+    RMXTableViewController
+    RMXViewController
+    RMXSegmentedController
+    RMXView
+    RMXActionSheet
+    RMXAutoLayoutLabel
+    RMXAutoLayoutScrollView
+    RMXTableHandler
+    RMXTableViewCell
+    RMXTableViewCellInnerContentView
   ).reverse.each do |x|
     app.files.unshift(File.join(File.dirname(__FILE__), "motion/#{x}.rb"))
   end
   FileUtils.mkdir_p(File.expand_path("../build", File.dirname(__FILE__)))
   env_filename = File.expand_path("../build/env.rb", File.dirname(__FILE__))
-  rmext_env = ENV['rmext_env'] == '1' ? ENV.to_hash : {}
+  rmx_env = ENV['rmx_env'] == '1' ? ENV.to_hash : {}
   File.open(env_filename, "w") do |f|
-    f.puts %Q{module RMExtensions\n  Env = #{rmext_env.inspect}\nend\n}
+    f.puts %Q{class RMX\n  Env = #{rmx_env.inspect}\nend\n}
   end
-  App.log "RMExtensions::Env", rmext_env.inspect
+  App.log "RMX::Env", rmx_env.inspect
   app.files.unshift(env_filename)
 end

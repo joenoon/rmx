@@ -1,4 +1,4 @@
-module RMExtensions
+class RMX
   class Layout
 
     ATTRIBUTE_LOOKUP = {
