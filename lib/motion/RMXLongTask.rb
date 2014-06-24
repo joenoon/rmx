@@ -85,7 +85,7 @@ class RMXLongTask
       p "ERROR: #{@desc} didn't call #end! in time!"
       __end!
     end)
-    if DEBUG_LONGTASK || @verbose
+    if RMX::DEBUG_LONGTASK || @verbose
       p "CREATED: #{@desc}"
     end
     if @tracking
@@ -97,7 +97,7 @@ class RMXLongTask
   end
 
   def end!
-    if DEBUG_LONGTASK || @verbose
+    if RMX::DEBUG_LONGTASK || @verbose
       p "SUCCESS: #{@desc} ended successfully."
     end
     __end!
@@ -124,7 +124,7 @@ class RMXLongTask
   end
 
   def rmx_dealloc
-    if DEBUG_DEALLOC
+    if RMX::DEBUG_DEALLOC
       p "DEALLOC: #{@desc}"
     end
     super
