@@ -1,9 +1,17 @@
 module RMXObjectExtensions
+
+  module Helper
+    def self.rmx_object_desc(obj)
+      if obj
+        cname = obj.className.to_s
+        obj_id = '%x' % obj.object_id.to_i
+        res = "#<#{cname}:0x#{obj_id}>"
+      end
+    end
+  end
     
   def rmx_object_desc
-    cname = self.className.to_s
-    obj_id = '%x' % (self.object_id + 0)
-    res = "#<#{cname}:0x#{obj_id}>"
+    Helper.rmx_object_desc(self)
   end
 
 end
