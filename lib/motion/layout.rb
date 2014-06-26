@@ -42,6 +42,24 @@ class RMX
       "v" => UILayoutConstraintAxisVertical
     }
 
+    AT_STR = "@"
+    DASH_STR = "-"
+    DOT_STR = "."
+    EMPTY_STR = " "
+    HEIGHT_STR = "height"
+    HUGH_STR = "hugH"
+    HUGV_STR = "hugV"
+    LAST_VISIBLE_STR = "last_visible"
+    NEWLINE_STR = "\n"
+    PLUS_STR = "+"
+    POUND_STR = "#"
+    Q_STR = "?"
+    RESISTH_STR = "resistH"
+    RESISTV_STR = "resistV"
+    STAR_STR = "*"
+    VIEW_STR = "view"
+    WIDTH_STR = "width"
+
     # keeps track of views that are not #hidden? as constraints are built, so the
     # special `last_visible` view name can be used in equations.
     # exposed for advanced layout needs.
@@ -60,6 +78,11 @@ class RMX
         block = nil
       end
     end
+
+    # def dealloc
+    #   p " - dealloc! (queue: #{Dispatch::Queue.current.description})"
+    #   super
+    # end
 
     # reopens the RMX::Layout instance for additional processing, ex:
     #   @layout.reopen do |layout|
@@ -113,7 +136,7 @@ class RMX
     # takes a string one or more equations separated by newlines and
     # processes each.  returns an array of constraints
     def eqs(str)
-      str.split("\n").map(&:strip).select { |x| !x.empty? }.map do |line|
+      str.split(NEWLINE_STR).map(&:strip).select { |x| !x.empty? }.map do |line|
         eq(line)
       end.compact
     end
@@ -121,7 +144,7 @@ class RMX
     # Constraints are of the form "view1.attr1 <relation> view2.attr2 * multiplier + constant @ priority"
     # processes one equation string
     def eq(str, remove=false)
-      parts = str.split("#", 2).first.split(" ").select { |x| !x.empty? }
+      parts = str.split(POUND_STR, 2).first.split(EMPTY_STR).select { |x| !x.empty? }
       return if parts.empty?
 
       item = nil
@@ -132,11 +155,11 @@ class RMX
       multiplier = 1.0
       constant = 0.0
       
-      debug = parts.delete("?")
+      debug = parts.delete(Q_STR)
 
       # first part should always be view1.attr1
       part = parts.shift
-      item, item_attribute = part.split(".", 2)
+      item, item_attribute = part.split(DOT_STR, 2)
 
       # second part should always be relation
       related_by = parts.shift
@@ -144,25 +167,25 @@ class RMX
       # now things get more complicated
 
       # look for priority
-      if idx = parts.index("@")
+      if idx = parts.index(AT_STR)
         priority = parts[idx + 1]
         parts.delete_at(idx)
         parts.delete_at(idx)
       end
 
       # look for negative or positive constant
-      if idx = parts.index("-")
+      if idx = parts.index(DASH_STR)
         constant = "-#{parts[idx + 1]}"
         parts.delete_at(idx)
         parts.delete_at(idx)
-      elsif idx = parts.index("+")
+      elsif idx = parts.index(PLUS_STR)
         constant = parts[idx + 1]
         parts.delete_at(idx)
         parts.delete_at(idx)
       end
 
       # look for multiplier
-      if idx = parts.index("*")
+      if idx = parts.index(STAR_STR)
         multiplier = parts[idx + 1]
         parts.delete_at(idx)
         parts.delete_at(idx)
@@ -172,7 +195,7 @@ class RMX
 
       if part = parts.shift
         # if part includes a . it could be either view2.attr2 or a float like 10.5
-        l, r = part.split(".", 2)
+        l, r = part.split(DOT_STR, 2)
         if !r || (r && r =~ /\d/)
           # assume a solo constant was on the right side
           constant = part
@@ -185,16 +208,16 @@ class RMX
       # if we dont have to_item and the item_attribute is something that requires a to_item, then
       # assume superview
       if !to_item
-        unless item_attribute == "height" || item_attribute == "width"
-          to_item = "view"
+        unless item_attribute == HEIGHT_STR || item_attribute == WIDTH_STR
+          to_item = VIEW_STR
           to_item_attribute = item_attribute
         end
       end
 
       # normalize
 
-      if item == "last_visible"
-        item = @visible_items.first || "view"
+      if item == LAST_VISIBLE_STR
+        item = @visible_items.first || VIEW_STR
       end
 
       res_item = view_for_item(item)
@@ -202,19 +225,19 @@ class RMX
 
       if res_item
         case item_attribute
-        when "resistH"
+        when RESISTH_STR
           return res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
-        when "resistV"
+        when RESISTV_STR
           return res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
-        when "hugH"
+        when HUGH_STR
           return res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
-        when "hugV"
+        when HUGV_STR
           return res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
         end
       end
 
-      if to_item == "last_visible"
-        to_item = @visible_items.detect { |x| x != item } || "view"
+      if to_item == LAST_VISIBLE_STR
+        to_item = @visible_items.detect { |x| x != item } || VIEW_STR
       end
 
       res_item_attribute = ATTRIBUTE_LOOKUP[item_attribute]
