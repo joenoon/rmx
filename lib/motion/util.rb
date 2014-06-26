@@ -42,7 +42,7 @@ class RMX
 
   def require_queue!(queue, file, line)
     unless Dispatch::Queue.current.description == queue.description
-      raise "WRONG QUEUE: was: #{Dispatch::Queue.current.description}, expected: #{queue.description}. #{@object.value.inspect} #{file}:#{line}, #{caller.inspect}"
+      raise "WRONG QUEUE: was: #{Dispatch::Queue.current.description}, expected: #{queue.description}. #{@unsafe_unretained_object_holder.inspect} #{file}:#{line}, #{caller.inspect}"
     end
   end
 
