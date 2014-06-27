@@ -24,6 +24,7 @@ Motion::Project::App.setup do |app|
     RMXEventsFromProxy
     RMXExecutionBlock
     RMXSetAttributes
+    RMXConcurrentOperation
     RMXViewControllerPresentation
     RMXKeyboardHelpers
     RMXNavigationController

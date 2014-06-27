@@ -26,4 +26,18 @@ class RMX
     end
   end
 
+  def synchronized_kvo_attr_accessor(*attrs)
+    if object = unsafe_unretained_object
+      attrs.each do |attr|
+        _attr = attr.to_s
+        object.send(:define_method, _attr) do
+          RMX.new(self).sync_ivar(_attr)
+        end
+        object.send(:define_method, "#{_attr}=") do |val|
+          RMX.new(self).kvo_sync_ivar(_attr, val)
+        end
+      end
+    end
+  end
+
 end

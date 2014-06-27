@@ -1,5 +1,15 @@
 class RMX
 
+  RECURSIVE_LOCK = NSRecursiveLock.new
+
+  def self.synchronized(&block)
+    res = nil
+    RECURSIVE_LOCK.lock
+    res = block.call
+    RECURSIVE_LOCK.unlock
+    res
+  end
+
   def self.safe_block(block)
     weak_block_owner_holder = RMXWeakHolder.new(block.owner)
     block.weak!
@@ -79,6 +89,25 @@ class RMX
       end
       val
     end
+  end
+
+  def sync_ivar(*args, &block)
+    RMX.synchronized do
+      ivar(*args, &block)
+    end
+  end
+
+  def kvo_sync_ivar(*args, &block)
+    res = nil
+    if object = unsafe_unretained_object
+      key = args[0].to_s
+      RMX.synchronized do
+        object.willChangeValueForKey(key)
+        res = ivar(*args, &block)
+        object.didChangeValueForKey(key)
+      end
+    end
+    res
   end
 
   def nil_instance_variables!
