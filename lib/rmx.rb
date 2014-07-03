@@ -35,8 +35,9 @@ Motion::Project::App.setup do |app|
     RMXActionSheet
     RMXAutoLayoutLabel
     RMXAutoLayoutScrollView
-    RMXTableHandler
     RMXTableViewCell
+    RMXTableHandler
+    RMXTableHandlerViewCell
     RMXTableViewCellInnerContentView
   ).reverse.each do |x|
     app.files.unshift(File.join(File.dirname(__FILE__), "motion/#{x}.rb"))
