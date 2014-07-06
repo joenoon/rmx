@@ -47,6 +47,8 @@ class RMX
     DOT_STR = "."
     EMPTY_STR = " "
     HEIGHT_STR = "height"
+    PIN_STR = "pin"
+    SIZE_STR = "size"
     HUGH_STR = "hugH"
     HUGV_STR = "hugV"
     LAST_VISIBLE_STR = "last_visible"
@@ -221,6 +223,19 @@ class RMX
       end
 
       res_item = view_for_item(item)
+      res_priority = priority ? Integer(PRIORITY_LOOKUP[priority] || priority) : nil
+
+      if res_item
+        case item_attribute
+        when SIZE_STR
+          w, h = constant.split("x",2)
+          return eqs(%Q{
+            #{item}.width == #{w} #{res_priority ? "@ #{res_priority}" : ""}
+            #{item}.height == #{h} #{res_priority ? "@ #{res_priority}" : ""}
+          })
+        end
+      end
+
       res_constant = Float(PRIORITY_LOOKUP[constant] || constant)
 
       if res_item
@@ -233,6 +248,13 @@ class RMX
           return res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
         when HUGV_STR
           return res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
+        when PIN_STR
+          return eqs(%Q{
+            #{item}.top == #{res_constant} #{res_priority ? "@ #{res_priority}" : ""}
+            #{item}.left == #{res_constant} #{res_priority ? "@ #{res_priority}" : ""}
+            #{item}.bottom == #{-res_constant} #{res_priority ? "@ #{res_priority}" : ""}
+            #{item}.right == #{-res_constant} #{res_priority ? "@ #{res_priority}" : ""}
+          })
         end
       end
 
@@ -245,7 +267,6 @@ class RMX
       res_to_item = to_item ? view_for_item(to_item) : nil
       res_to_item_attribute = ATTRIBUTE_LOOKUP[to_item_attribute]
       res_multiplier = Float(multiplier)
-      res_priority = priority ? Integer(PRIORITY_LOOKUP[priority] || priority) : nil
 
       errors = []
       errors.push("Invalid view1: #{item}") unless res_item
