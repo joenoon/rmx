@@ -5,19 +5,11 @@ class RMX
   end
 
   def events_from_proxy
-    res = nil
-    RMXEventsFromProxy::QUEUE.sync do
-      res = ivar(:_rmx_events_from_proxy, &CREATE_EVENT_PROXY)
-    end
-    res
+    sync_ivar(:_rmx_events_from_proxy, &CREATE_EVENT_PROXY)
   end
 
   def _events_from_proxy
-    res = nil
-    RMXEventsFromProxy::QUEUE.sync do
-      res = ivar(:_rmx_events_from_proxy)
-    end
-    res
+    sync_ivar(:_rmx_events_from_proxy)
   end
 
   # register a callback when an event is triggered on this object.
