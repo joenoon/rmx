@@ -71,6 +71,12 @@ class RMXTableHandler
     tableView.registerClass(klass, forCellReuseIdentifier:reuseIdentifier)
   end
 
+  def registerClass(klass, forHeaderFooterViewReuseIdentifier:reuseIdentifier)
+    reuseIdentifier = reuseIdentifier.to_s
+    registered_reuse_identifiers[reuseIdentifier] = klass.new
+    tableView.registerClass(klass, forHeaderFooterViewReuseIdentifier:reuseIdentifier)
+  end
+
   def tableView(tableView, cellForRowAtIndexPath:indexPath)
     RMX.assert_main_thread!
     context = {
@@ -86,7 +92,7 @@ class RMXTableHandler
         raise ":reuseIdentifier is required"
       end
       reuseIdentifier = res[:reuseIdentifier].to_s
-      registered_reuse_identifiers[reuseIdentifier] || registerClass(RMXTableViewCell, forCellReuseIdentifier:reuseIdentifier)
+      registered_reuse_identifiers[reuseIdentifier] || registerClass(RMXTableHandlerViewCell, forCellReuseIdentifier:reuseIdentifier)
       res = tableView.dequeueReusableCellWithIdentifier(reuseIdentifier, forIndexPath:indexPath)
       res.context = context
     end
@@ -146,6 +152,17 @@ class RMXTableHandler
         :section => section
       }
       res = delegate.tableHandler(self, headerForContext:context)
+      if res.is_a?(Hash)
+        res[:data] ||= @sections[section]
+        context.update(res)
+        unless res[:reuseIdentifier]
+          raise ":reuseIdentifier is required"
+        end
+        reuseIdentifier = res[:reuseIdentifier].to_s
+        registered_reuse_identifiers[reuseIdentifier] || registerClass(RMXTableHandlerViewHeaderFooterView, forHeaderFooterViewReuseIdentifier:reuseIdentifier)
+        res = tableView.dequeueReusableHeaderFooterViewWithIdentifier(reuseIdentifier)
+        res.context = context
+      end
       # p "viewForHeaderInSection", section, res
       res
     end
