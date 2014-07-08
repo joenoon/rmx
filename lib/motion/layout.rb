@@ -75,6 +75,7 @@ class RMX
       @block_owner = block.owner if block
       @visible_items = []
       @constraints = {}
+      @subviews = {}
       unless block.nil?
         block.call(self)
         block = nil
@@ -123,16 +124,22 @@ class RMX
     end
 
     def subviews(subviews)
-      @subviews = subviews
-      @subviews.values.each do |subview|
-        subview.translatesAutoresizingMaskIntoConstraints = false
-        @view.addSubview(subview)
+      @subviews = {}
+      subviews.each_pair do |key, subview|
+        add_subview(key, subview)
       end
       @subviews
     end
 
     def subviews=(views)
       subviews(views)
+    end
+
+    def add_subview(key, subview)
+      @subviews[key] = subview
+      subview.translatesAutoresizingMaskIntoConstraints = false
+      @view.addSubview(subview)
+      subview
     end
 
     # takes a string one or more equations separated by newlines and
@@ -394,6 +401,10 @@ class RMX
         @block_owner && @block_owner.bottomLayoutGuide
       elsif v = (@subviews && @subviews[item])
         v
+      elsif @block_owner
+        if v = RMX(@block_owner).ivar(item)
+          add_subview(item, v)
+        end
       end
     end
 
