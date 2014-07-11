@@ -92,8 +92,10 @@ class RMXTableHandler
         raise ":reuseIdentifier is required"
       end
       reuseIdentifier = res[:reuseIdentifier].to_s
-      registered_reuse_identifiers[reuseIdentifier] || registerClass(RMXTableHandlerViewCell, forCellReuseIdentifier:reuseIdentifier)
       res = tableView.dequeueReusableCellWithIdentifier(reuseIdentifier, forIndexPath:indexPath)
+      unless res
+        raise "Missing dequeue, maybe you want: registerClass(RMXTableHandlerViewCell, forCellReuseIdentifier: #{reuseIdentifier.inspect})"
+      end
       res.context = context
     end
     # p "cellForRowAtIndexPath", res, context
@@ -116,19 +118,19 @@ class RMXTableHandler
     end
     if res.is_a?(Hash)
       context.update(res)
-      unless res[:reuseIdentifier]
+      unless context[:reuseIdentifier]
         raise ":reuseIdentifier is required"
       end
-      reuseIdentifier = res[:reuseIdentifier].to_s
+      reuseIdentifier = context[:reuseIdentifier].to_s
       height = nil
-      if res[:data]
+      if context[:data]
         if heights = @heights[reuseIdentifier]
-          height = heights[res[:data]]
+          height = heights[context[:data]]
         end
       end
       unless height
         # p "using estimated"
-        height = res[:estimated]
+        height = context[:estimated]
       # else
       #   p "using real"
       end
@@ -159,8 +161,10 @@ class RMXTableHandler
           raise ":reuseIdentifier is required"
         end
         reuseIdentifier = res[:reuseIdentifier].to_s
-        registered_reuse_identifiers[reuseIdentifier] || registerClass(RMXTableHandlerViewHeaderFooterView, forHeaderFooterViewReuseIdentifier:reuseIdentifier)
         res = tableView.dequeueReusableHeaderFooterViewWithIdentifier(reuseIdentifier)
+        unless res
+          raise "Missing dequeue, maybe you want: registerClass(RMXTableHandlerViewHeaderFooterView, forHeaderFooterViewReuseIdentifier: #{reuseIdentifier.inspect})"
+        end
         res.context = context
       end
       # p "viewForHeaderInSection", section, res
