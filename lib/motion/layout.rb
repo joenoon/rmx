@@ -51,6 +51,8 @@ class RMX
     SIZE_STR = "size"
     HUGH_STR = "hugH"
     HUGV_STR = "hugV"
+    COMPRESSH_STR = "compressH"
+    COMPRESSV_STR = "compressV"
     LAST_VISIBLE_STR = "last_visible"
     NEWLINE_STR = "\n"
     PLUS_STR = "+"
@@ -248,13 +250,25 @@ class RMX
       if res_item
         case item_attribute
         when RESISTH_STR
-          return res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
+          res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
+          return
         when RESISTV_STR
-          return res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
+          res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
+          return
         when HUGH_STR
-          return res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
+          res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
+          return
         when HUGV_STR
-          return res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
+          res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
+          return
+        when COMPRESSH_STR
+          res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
+          res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisHorizontal)
+          return
+        when COMPRESSV_STR
+          res_item.setContentCompressionResistancePriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
+          res_item.setContentHuggingPriority(res_constant, forAxis:UILayoutConstraintAxisVertical)
+          return
         when PIN_STR
           return eqs(%Q{
             #{item}.top == #{res_constant} #{res_priority ? "@ #{res_priority}" : ""}
