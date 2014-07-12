@@ -77,7 +77,9 @@ class RMXTableHandlerViewCell < UITableViewCell
       height = contentView.systemLayoutSizeFittingSize(UILayoutFittingCompressedSize).height
       # p "height", height
       if h.updateHeight(height, data:d, reuseIdentifier:reuseIdentifier)
-        h.reloadData
+        Dispatch::Queue.main.async do
+          h.reloadData
+        end
       end
     end
   end
