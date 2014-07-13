@@ -98,6 +98,9 @@ class RMXTableHandler
       end
       res.context = context
     end
+    unless respondsToClickForContext?
+      res.selectionStyle = UITableViewCellSelectionStyleNone
+    end
     # p "cellForRowAtIndexPath", res, context
     res
   end
@@ -203,10 +206,15 @@ class RMXTableHandler
     res
   end
 
-  def tableView(tableView, didSelectRowAtIndexPath:indexPath)
-    RMX.assert_main_thread!
+  def respondsToClickForContext?
     if @respondsToClickForContext || delegate.respondsToSelector('tableHandler:clickForContext:')
       @respondsToClickForContext = true
+    end
+  end
+
+  def tableView(tableView, didSelectRowAtIndexPath:indexPath)
+    RMX.assert_main_thread!
+    if respondsToClickForContext?
       context = {
         :tableHandler => self,
         :tableView => tableView,
