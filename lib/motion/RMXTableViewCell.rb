@@ -2,10 +2,34 @@ class RMXTableViewCell < UITableViewCell
 
   include RMXCommonMethods
 
+  attr_accessor :innerContentView
+
   def initWithStyle(style, reuseIdentifier:reuseIdentifier)
-    s = super
+    reuseIdentifier = reuseIdentifier.to_s
+    s = super(style, reuseIdentifier)
+    @innerContentView = RMXTableViewCellInnerContentView.new
+    @innerContentView.cell = self
+    RMX::Layout.new do |layout|
+      layout.view = contentView
+      layout.subviews = {
+        "innerContentView" => @innerContentView
+      }
+      layout.eqs %Q{
+        innerContentView.top == 0
+        innerContentView.left == 0
+        innerContentView.right == 0
+        innerContentView.bottom == 0 @ med
+      }
+    end
     setup
     s
+  end
+
+  def prepareForReuse
+    reset
+  end
+
+  def reset
   end
 
   def setup

@@ -1,31 +1,8 @@
-class RMXTableHandlerViewCell < UITableViewCell
-
-  include RMXCommonMethods
+class RMXTableHandlerViewCell < RMXTableViewCell
 
   RMX.new(self).weak_attr_accessor :tableView
   RMX.new(self).weak_attr_accessor :tableHandler
-  attr_accessor :indexPath, :innerContentView
-
-  def initWithStyle(style, reuseIdentifier:reuseIdentifier)
-    reuseIdentifier = reuseIdentifier.to_s
-    s = super(style, reuseIdentifier)
-    @innerContentView = RMXTableViewCellInnerContentView.new
-    @innerContentView.cell = self
-    RMX::Layout.new do |layout|
-      layout.view = contentView
-      layout.subviews = {
-        "innerContentView" => @innerContentView
-      }
-      layout.eqs %Q{
-        innerContentView.top == 0
-        innerContentView.left == 0
-        innerContentView.right == 0
-        innerContentView.bottom == 0 @ med
-      }
-    end
-    setup
-    s
-  end
+  attr_accessor :indexPath
 
   def context=(context)
     self.tableHandler = context[:tableHandler]
@@ -36,9 +13,6 @@ class RMXTableHandlerViewCell < UITableViewCell
     if context[:transform] && transform != context[:transform]
       self.transform = context[:transform]
     end
-  end
-
-  def setup
   end
 
   def data
