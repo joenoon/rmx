@@ -36,6 +36,7 @@ Motion::Project::App.setup do |app|
     RMXAutoLayoutLabel
     RMXAutoLayoutScrollView
     RMXTableViewCell
+    RMXTableViewHeaderFooterView
     RMXTableHandler
     RMXTableHandlerViewCell
     RMXTableHandlerViewHeaderFooterView
