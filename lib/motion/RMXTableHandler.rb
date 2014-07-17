@@ -11,6 +11,7 @@ class RMXTableHandler
     x.tableView = tableView
     tableView.dataSource = x
     tableView.delegate = x
+    x.registerClass(RMXTableHandlerViewCell, forCellReuseIdentifier:"Empty")
     x
   end
 
@@ -86,10 +87,12 @@ class RMXTableHandler
       :data => delegate.tableHandler(self, dataForSectionName:@sections[indexPath.section])[indexPath.row]
     }
     res = delegate.tableHandler(self, cellOptsForContext:context)
-    if res.is_a?(Hash)
+    if res.nil?
+      res = tableView.dequeueReusableCellWithIdentifier("Empty", forIndexPath:indexPath)
+    elsif res.is_a?(Hash)
       context.update(res)
       unless res[:reuseIdentifier]
-        raise ":reuseIdentifier is required"
+        raise ":reuseIdentifier is required. context: #{context.inspect}"
       end
       reuseIdentifier = res[:reuseIdentifier].to_s
       res = tableView.dequeueReusableCellWithIdentifier(reuseIdentifier, forIndexPath:indexPath)
@@ -119,10 +122,12 @@ class RMXTableHandler
     else
       delegate.tableHandler(self, cellOptsForContext:context)
     end
-    if res.is_a?(Hash)
+    if res.nil?
+      res = 0
+    elsif res.is_a?(Hash)
       context.update(res)
       unless context[:reuseIdentifier]
-        raise ":reuseIdentifier is required"
+        raise ":reuseIdentifier is required. context: #{context.inspect}"
       end
       reuseIdentifier = context[:reuseIdentifier].to_s
       height = nil
