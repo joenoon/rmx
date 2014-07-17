@@ -26,7 +26,7 @@ class RMXEventsFromProxy
     off_block.block = proc do
       off(event, execution_block)
     end
-    QUEUE.sync do
+    RMX.synchronized do
       @events[event] ||= []
       @events[event] << execution_block
     end
@@ -39,7 +39,7 @@ class RMXEventsFromProxy
   end
 
   def off(event=nil, execution_block=nil)
-    QUEUE.sync do
+    RMX.synchronized do
       if event.is_a?(String) || event.is_a?(Symbol)
         event = event.to_s
         if execution_block
