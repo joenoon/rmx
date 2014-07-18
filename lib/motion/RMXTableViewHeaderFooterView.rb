@@ -20,8 +20,8 @@ class RMXTableViewHeaderFooterView < UITableViewHeaderFooterView
       layout.eqs %Q{
         innerContentView.top == 0
         innerContentView.left == 0
-        innerContentView.right == 0 @ med
-        innerContentView.bottom == 0 @ med
+        innerContentView.right == 0 @ 751
+        innerContentView.bottom == 0 @ 751
       }
     end
     self
