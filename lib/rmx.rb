@@ -27,6 +27,7 @@ Motion::Project::App.setup do |app|
     RMXConcurrentOperation
     RMXViewControllerPresentation
     RMXKeyboardHelpers
+    RMXHideTableViewHeader
     RMXNavigationController
     RMXTableViewController
     RMXViewController

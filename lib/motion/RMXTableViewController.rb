@@ -4,6 +4,7 @@ class RMXTableViewController < UITableViewController
   include RMXViewControllerPresentation
   include RMXKeyboardHelpers
   include RMXSetAttributes
+  include RMXHideTableViewHeader
 
   def prepare
   end

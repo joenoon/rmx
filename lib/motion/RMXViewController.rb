@@ -4,6 +4,7 @@ class RMXViewController < UIViewController
   include RMXViewControllerPresentation
   include RMXKeyboardHelpers
   include RMXSetAttributes
+  include RMXHideTableViewHeader
 
   def init
     s = super
