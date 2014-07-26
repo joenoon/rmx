@@ -1,5 +1,7 @@
 class RMXSegmentedController < RMXViewController
 
+  attr_accessor :index_on_load
+
   def prepare
     @controller_indexes = []
     @control = UISegmentedControl.new
@@ -8,7 +10,7 @@ class RMXSegmentedController < RMXViewController
 
   def loaded
     navigationItem.titleView = @control
-    self.selectedIndex = 0
+    self.selectedIndex = index_on_load || 0
   end
 
   def segments=(segments)
@@ -32,6 +34,8 @@ class RMXSegmentedController < RMXViewController
   end
 
   def selectedIndex=(i)
+    self.index_on_load = i
+    return unless isViewLoaded
     cleanup_active
     @control.selectedSegmentIndex = @control.numberOfSegments > i ? i : UISegmentedControlNoSegment
     @active_controller = @controller_indexes[i]
@@ -45,8 +49,8 @@ class RMXSegmentedController < RMXViewController
         layout.eqs %Q{
           content.left == 0
           content.right == 0
-          content.top == 0
-          content.bottom == 0
+          content.top == topLayoutGuide.bottom
+          content.bottom == bottomLayoutGuide.top
         }
       end
       @active_controller.didMoveToParentViewController(self)
