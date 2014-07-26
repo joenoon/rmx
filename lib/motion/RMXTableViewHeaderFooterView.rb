@@ -14,15 +14,18 @@ class RMXTableViewHeaderFooterView < UITableViewHeaderFooterView
   end
 
   def useAutoLayout!
-    @innerContentView = RMXView.new
-    RMX::Layout.new do |layout|
-      layout.view = contentView
-      layout.eqs %Q{
-        innerContentView.top == 0
-        innerContentView.left == 0
-        innerContentView.right == 0 @ 751
-        innerContentView.bottom == 0 @ 751
-      }
+    @useAutoLayout ||= begin
+      @innerContentView = RMXView.new
+      RMX::Layout.new do |layout|
+        layout.view = contentView
+        layout.eqs %Q{
+          innerContentView.top == 0
+          innerContentView.left == 0
+          innerContentView.right == 0 @ 751
+          innerContentView.bottom == 0 @ 751
+        }
+      end
+      true
     end
     self
   end
@@ -30,7 +33,7 @@ class RMXTableViewHeaderFooterView < UITableViewHeaderFooterView
   def layoutSubviews
     s = super
     if @innerContentView
-      height = @innerContentView.systemLayoutSizeFittingSize(UILayoutFittingCompressedSize).height + 10
+      height = @innerContentView.systemLayoutSizeFittingSize(UILayoutFittingCompressedSize).height
       _frame = frame
       if _frame.size.height != height
         _frame.size.height = height
