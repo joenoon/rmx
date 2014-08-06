@@ -25,6 +25,7 @@ class RMXTableHandler
   end
 
   def initialize
+    @animating = nil
     @sections = []
     @heights = {}
     @registered_reuse_identifiers = {}
@@ -241,6 +242,36 @@ class RMXTableHandler
       return true
     end
     false
+  end
+
+  def scrollViewIsAnimating?
+    !!@animating
+  end
+
+  def scrollViewDidScroll(scrollView)
+    @animating = true
+  end
+
+  def scrollViewWillBeginDragging(scrollView)
+    @animating = true
+    true
+  end
+
+  def scrollViewDidEndDragging(scrollView, willDecelerate:willDecelerate)
+    unless willDecelerate
+      @animating = nil
+    end
+    nil
+  end
+
+  def scrollViewDidEndDecelerating(scrollView)
+    @animating = nil
+    nil
+  end
+
+  def scrollViewDidEndScrollingAnimation(scrollView)
+    @animating = nil
+    nil
   end
 
 end
