@@ -32,7 +32,7 @@ class RMX
     if NSThread.currentThread.isMainThread
       block.call
     else
-      Dispatch::Queue.main do
+      Dispatch::Queue.main.async do
         block.call
       end
     end
