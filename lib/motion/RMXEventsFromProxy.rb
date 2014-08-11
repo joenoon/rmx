@@ -66,7 +66,7 @@ class RMXEventsFromProxy
   end
 
   def trigger(event, *values)
-    QUEUE.async do
+    RMX.synchronized do
       # if RMX::DEBUG_EVENTS
       #   p "TRIGGER:", event, values, "@events", @events
       # end
