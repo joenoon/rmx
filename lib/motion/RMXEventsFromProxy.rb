@@ -66,32 +66,34 @@ class RMXEventsFromProxy
   end
 
   def trigger(event, *values)
-    RMX.synchronized do
-      # if RMX::DEBUG_EVENTS
-      #   p "TRIGGER:", event, values, "@events", @events
-      # end
-      event = event.to_s
-      _execution_blocks = @events[event]
-      next unless _execution_blocks
-      execution_blocks = _execution_blocks.dup
-      while execution_blocks.size > 0
-        execution_block = execution_blocks.shift
-        exclusive = execution_block.meta[:exclusive]
-        if exclusive
-          _exclusive = exclusive.dup
-          while _exclusive.size > 0
-            exclude = _exclusive.shift.to_s
-            deleted = @events.delete(exclude)
-            if RMX::DEBUG_EVENTS
-              p "REMOVING DUE TO EXCLUSIVE:", exclude, "FOR EVENT:", event, "deleted:", deleted
+    QUEUE.async do
+      RMX.synchronized do
+        # if RMX::DEBUG_EVENTS
+        #   p "TRIGGER:", event, values, "@events", @events
+        # end
+        event = event.to_s
+        _execution_blocks = @events[event]
+        next unless _execution_blocks
+        execution_blocks = _execution_blocks.dup
+        while execution_blocks.size > 0
+          execution_block = execution_blocks.shift
+          exclusive = execution_block.meta[:exclusive]
+          if exclusive
+            _exclusive = exclusive.dup
+            while _exclusive.size > 0
+              exclude = _exclusive.shift.to_s
+              deleted = @events.delete(exclude)
+              if RMX::DEBUG_EVENTS
+                p "REMOVING DUE TO EXCLUSIVE:", exclude, "FOR EVENT:", event, "deleted:", deleted
+              end
             end
           end
-        end
-        execution_block.call(*values)
-        if execution_block.dead
-          deleted = _execution_blocks.delete(execution_block)
-          if RMX::DEBUG_EVENTS
-            p "REMOVING DUE TO DEAD:", "FOR EVENT:", event, "deleted:", deleted
+          execution_block.call(*values)
+          if execution_block.dead
+            deleted = _execution_blocks.delete(execution_block)
+            if RMX::DEBUG_EVENTS
+              p "REMOVING DUE TO DEAD:", "FOR EVENT:", event, "deleted:", deleted
+            end
           end
         end
       end
