@@ -376,7 +376,7 @@ class RMX
     end
 
     def describe_view
-      self.class.describe_view(@subviews, @view)
+      self.class.describe_view(@view, @subviews)
     end
 
     # transforms an NSLayoutConstraint into a string.  this string is for debugging and produces
@@ -384,10 +384,10 @@ class RMX
     # pass the subviews hash just as you would to Layout#subviews=, followed by the NSLayoutConstraint
     def self.describe_constraint(subviews, constraint)
       subviews_inverse = subviews.invert
-      item = subviews_inverse[constraint.firstItem] || "view"
+      item = subviews_inverse[constraint.firstItem] || constraint.firstItem.description
       item_attribute = ATTRIBUTE_LOOKUP_INVERSE[constraint.firstAttribute]
       related_by = RELATED_BY_LOOKUP_INVERSE[constraint.relation]
-      to_item = subviews_inverse[constraint.secondItem] || "view"
+      to_item = subviews_inverse[constraint.secondItem] || constraint.secondItem.description
       to_item_attribute = ATTRIBUTE_LOOKUP_INVERSE[constraint.secondAttribute]
       multiplier = constraint.multiplier
       constant = constraint.constant
@@ -398,7 +398,7 @@ class RMX
     # transforms a view's NSLayoutConstraints into strings.
     # pass the subviews hash just as you would to Layout#subviews=, followed by the view to
     # describe
-    def self.describe_view(subviews, view)
+    def self.describe_view(view, subviews={})
       view.constraints.map do |constraint|
         describe_constraint(subviews, constraint)
       end.join("\n")
