@@ -7,8 +7,7 @@ class RMXTableViewCell < UITableViewCell
   def initWithStyle(style, reuseIdentifier:reuseIdentifier)
     reuseIdentifier = reuseIdentifier.to_s
     s = super(style, reuseIdentifier)
-    @innerContentView = RMXTableViewCellInnerContentView.new
-    @innerContentView.cell = self
+    @innerContentView = RMXView.new
     RMX::Layout.new do |layout|
       layout.view = contentView
       layout.subviews = {
@@ -18,7 +17,7 @@ class RMXTableViewCell < UITableViewCell
         innerContentView.top == 0
         innerContentView.left == 0
         innerContentView.right == 0
-        innerContentView.bottom == 0 @ med
+        innerContentView.bottom == 0 @ 999
       }
     end
     setup

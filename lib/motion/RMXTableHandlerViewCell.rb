@@ -2,7 +2,23 @@ class RMXTableHandlerViewCell < RMXTableViewCell
 
   RMX.new(self).weak_attr_accessor :tableView
   RMX.new(self).weak_attr_accessor :tableHandler
-  attr_accessor :indexPath
+  attr_accessor :indexPath, :sizerCellReuseIdentifier
+
+  def setNeedsUpdateConstraints
+    super unless sizerCellReuseIdentifier
+  end
+  def setNeedsLayout
+    super unless sizerCellReuseIdentifier
+  end
+  def setNeedsDisplay
+    super unless sizerCellReuseIdentifier
+  end
+  def setNeedsDisplayInRect(rect)
+    super unless sizerCellReuseIdentifier
+  end
+  def layoutIfNeeded
+    super unless sizerCellReuseIdentifier
+  end
 
   def context=(context)
     self.tableHandler = context[:tableHandler]
@@ -44,18 +60,6 @@ class RMXTableHandlerViewCell < RMXTableViewCell
       end
     end
     view
-  end
-
-  def updateHeight!
-    if (d = data) && (h = tableHandler)
-      height = contentView.systemLayoutSizeFittingSize(UILayoutFittingCompressedSize).height
-      # p "height", height
-      if h.updateHeight(height, data:d, reuseIdentifier:reuseIdentifier)
-        Dispatch::Queue.main.async do
-          h.reloadData
-        end
-      end
-    end
   end
 
 end

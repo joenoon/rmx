@@ -1,10 +1,45 @@
 class RMXTableHandler
 
+  # required delegate method:
+  #
+  # def tableHandler(tableHandler, optsForData:data, section:section, row:row)
+  #   example return:
+  #     {
+  #       :reuseIdentifier => "reuseIdentifier", # semi-required unless using static :cell (an empty cell will be used otherwise)
+  #       :estimated_height => 100, # setting this will improve performance
+  #       :fixed_height => 100, # if you know the cells height, setting this will greatly improve performance
+  #       :cell => aTableViewCell # static
+  #     }
+  #
+  # def tableHandler(tableHandler, dataForSection:section)
+  #   example return if only using one section:
+  #     @my_array_of_data
+  #   example return if using multiple sections:
+  #     @my_array_of_arrays_of_data[section]
+  #
+  # optional:
+  #
+  # def tableHandler(tableHandler, clickForData:data, section:section, row:row) # if not implemented cell will be no-select
+  # def tableHandler(tableHandler, numberOfRowsInSection:section) # default (dataForSection:).size
+  # def numberOfSectionsInTableHandler(tableHandler) # default 1
+  # def tableHandler(tableHandler, optsForSection:section)
+  #   if title = @headers[section]
+  #     {
+  #       :reuseIdentifier => :section_header,
+  #       :data => title,
+  #       :fixed_height => 30  # required,
+  #       :header => aHeaderView # static
+  #     }
+  #   end
+  # end
+
+  #
+
   include RMXCommonMethods
 
   RMX.new(self).weak_attr_accessor :tableView, :delegate
 
-  attr_accessor :registered_reuse_identifiers, :sections
+  attr_accessor :registered_reuse_identifiers, :debug, :allowRefreshHeights
 
   def self.forTable(tableView)
     x = new
@@ -25,51 +60,68 @@ class RMXTableHandler
   end
 
   def initialize
-    @animating = nil
-    @sections = []
+    @debug = false
     @heights = {}
     @registered_reuse_identifiers = {}
+    @delegateRespondsTo = {}
+    @allowRefreshHeights = false
     self
   end
 
   def animateUpdates
-    if @isAnimatingUpdates
-      @animateUpdatesAgain = true
-      return
-    end
-    @isAnimatingUpdates = true
-    CATransaction.begin
-    CATransaction.setCompletionBlock(lambda do
-      p "animation has finished"
-      @isAnimatingUpdates = false
-      if @animateUpdatesAgain
-        p "animate again!"
-        @animateUpdatesAgain = false
-        animateUpdates
+    RMX.after_animations do
+      if tv = @tableView and tv.superview
+        tv.beginUpdates
+        tv.endUpdates
       end
-    end)
-    tableView.beginUpdates
-    tableView.endUpdates
-    CATransaction.commit
+    end
   end
 
   def reloadData
     if tv = tableView
+      log("reloadData") if debug
+      @allowRefreshHeights = false
       tv.reloadData
+      @allowRefreshHeights = true
     end
   end
 
-  def set_size_for_data(data, reuseIdentifier:reuseIdentifier)
+  def cached_height_for_data(data, reuseIdentifier:reuseIdentifier)
     reuseIdentifier = reuseIdentifier.to_s
     sizerCell = registered_reuse_identifiers[reuseIdentifier]
     sizerCell.data = data
-    height = sizerCell.contentView.systemLayoutSizeFittingSize(UILayoutFittingCompressedSize).height
-    updateHeight(height, data:data, reuseIdentifier:reuseIdentifier)
+    height = sizerCell.contentView.systemLayoutSizeFittingSize(UILayoutFittingCompressedSize).height + 1
+    @heights[[ reuseIdentifier, data ]] = height
+    log("cached_height_for_data", data, height) if debug
+    height
+  end
+
+  def log(*args)
+    args.unshift debug
+    Dispatch::Queue.concurrent(:low).async do
+      p *args
+    end
+  end
+
+  def invalidateHeightForData(data, reuseIdentifier:reuseIdentifier)
+    reuseIdentifier = reuseIdentifier.to_s
+    @heights.delete([ reuseIdentifier, data ])
+    log("invalidateHeightForData", reuseIdentifier, data) if debug
+    if allowRefreshHeights
+      log("invalidateHeightForData animateUpdates") if debug
+      Dispatch::Queue.main.async do
+        animateUpdates
+      end
+    else
+      log("invalidateHeightForData animateUpdates skipped because of allowRefreshHeights == false") if debug
+    end
   end
 
   def registerClass(klass, forCellReuseIdentifier:reuseIdentifier)
     reuseIdentifier = reuseIdentifier.to_s
-    registered_reuse_identifiers[reuseIdentifier] = klass.new
+    registered_reuse_identifiers[reuseIdentifier] = sizerCell = klass.new
+    sizerCell.tableHandler = self
+    sizerCell.sizerCellReuseIdentifier = reuseIdentifier
     tableView.registerClass(klass, forCellReuseIdentifier:reuseIdentifier)
   end
 
@@ -80,198 +132,137 @@ class RMXTableHandler
   end
 
   def tableView(tableView, cellForRowAtIndexPath:indexPath)
-    RMX.assert_main_thread!
+    data = delegate.tableHandler(self, dataForSection:indexPath.section)[indexPath.row]
+    opts = delegate.tableHandler(self, optsForData:data, section:indexPath.section, row:indexPath.row) || {}
+    reuseIdentifier = opts[:reuseIdentifier].to_s
     context = {
       :tableHandler => self,
       :tableView => tableView,
       :indexPath => indexPath,
-      :data => delegate.tableHandler(self, dataForSectionName:@sections[indexPath.section])[indexPath.row]
+      :data => data
     }
-    res = delegate.tableHandler(self, cellOptsForContext:context)
-    if res.nil?
-      res = tableView.dequeueReusableCellWithIdentifier("Empty", forIndexPath:indexPath)
-    elsif res.is_a?(Hash)
-      context.update(res)
-      unless res[:reuseIdentifier]
-        raise ":reuseIdentifier is required. context: #{context.inspect}"
-      end
-      reuseIdentifier = res[:reuseIdentifier].to_s
-      res = tableView.dequeueReusableCellWithIdentifier(reuseIdentifier, forIndexPath:indexPath)
-      unless res
-        raise "Missing dequeue, maybe you want: registerClass(RMXTableHandlerViewCell, forCellReuseIdentifier: #{reuseIdentifier.inspect})"
-      end
-      res.context = context
+    cell = nil
+    if cell = opts[:cell]
+      # noop
+    elsif reuseIdentifier.empty? || !registered_reuse_identifiers.key?(reuseIdentifier)
+      log("Unknown reuseIdentifier '#{reuseIdentifier}'", context)
+      cell = tableView.dequeueReusableCellWithIdentifier("Empty", forIndexPath:indexPath)
+    else
+      context.update(opts)
+      cell = tableView.dequeueReusableCellWithIdentifier(reuseIdentifier, forIndexPath:indexPath)
+      cell.context = context
     end
-    unless respondsToClickForContext?
-      res.selectionStyle = UITableViewCellSelectionStyleNone
+    unless delegateRespondsTo?('tableHandler:clickForData:section:row:')
+      cell.selectionStyle = UITableViewCellSelectionStyleNone
     end
-    # p "cellForRowAtIndexPath", res, context
-    res
+    log("cellForRowAtIndexPath", indexPath.description, cell, context) if debug
+    cell
   end
 
   def tableView(tableView, heightForRowAtIndexPath:indexPath)
-    RMX.assert_main_thread!
-    context = {
-      :tableHandler => self,
-      :tableView => tableView,
-      :indexPath => indexPath,
-      :data => delegate.tableHandler(self, dataForSectionName:@sections[indexPath.section])[indexPath.row]
-    }
-    res = if @respondsToHeightForContext || delegate.respondsToSelector('tableHandler:heightForContext:')
-      @respondsToHeightForContext = true
-      delegate.tableHandler(self, heightForContext:context)
-    else
-      delegate.tableHandler(self, cellOptsForContext:context)
-    end
-    if res.nil?
-      res = 0
-    elsif res.is_a?(Hash)
-      context.update(res)
-      unless context[:reuseIdentifier]
-        raise ":reuseIdentifier is required. context: #{context.inspect}"
-      end
-      reuseIdentifier = context[:reuseIdentifier].to_s
-      height = nil
-      if context[:data]
-        if heights = @heights[reuseIdentifier]
-          height = heights[context[:data]]
-        end
-      end
-      unless height
-        # p "using estimated"
-        height = context[:estimated]
-      # else
-      #   p "using real"
-      end
-      res = height
-    end
-    # p "heightForRowAtIndexPath", indexPath, res
-    res
+    heightForRowAtIndexPath(indexPath, false)
   end
 
   def tableView(tableView, estimatedHeightForRowAtIndexPath:indexPath)
-    tableView(tableView, heightForRowAtIndexPath:indexPath)
+    heightForRowAtIndexPath(indexPath, true)
+  end
+
+  def heightForRowAtIndexPath(indexPath, allow_estimated=false)
+    data = delegate.tableHandler(self, dataForSection:indexPath.section)[indexPath.row]
+    opts = delegate.tableHandler(self, optsForData:data, section:indexPath.section, row:indexPath.row) || {}
+    reuseIdentifier = opts[:reuseIdentifier].to_s
+    height = nil
+    type = :empty
+    unless height = (reuseIdentifier.empty? || !registered_reuse_identifiers.key?(reuseIdentifier)) && 0
+      type = :fixed
+      unless height = opts[:fixed_height]
+        type = :cached
+        unless height = @heights[[ reuseIdentifier, data ]]
+          type = :estimated
+          unless allow_estimated and height = opts[:estimated_height]
+            type = :calculated
+            height = cached_height_for_data(data, reuseIdentifier:reuseIdentifier)
+          end
+        end
+      end
+    end
+    log("heightForRowAtIndexPath", allow_estimated, indexPath.description, type, height) if debug
+    height
+  end
+
+  def delegateRespondsTo?(sel)
+    if @delegateRespondsTo[sel].nil?
+      @delegateRespondsTo[sel] = delegate.respondsToSelector(sel)
+    end
+    @delegateRespondsTo[sel]
   end
 
   def tableView(tableView, viewForHeaderInSection:section)
-    RMX.assert_main_thread!
-    if @respondsToHeaderForContext || delegate.respondsToSelector('tableHandler:headerForContext:')
-      @respondsToHeaderForContext = true
+    if delegateRespondsTo?('tableHandler:optsForSection:')
       context = {
         :tableHandler => self,
         :tableView => tableView,
         :section => section
       }
-      res = delegate.tableHandler(self, headerForContext:context)
-      if res.is_a?(Hash)
-        res[:data] ||= @sections[section]
-        context.update(res)
-        unless res[:reuseIdentifier]
-          raise ":reuseIdentifier is required"
-        end
-        reuseIdentifier = res[:reuseIdentifier].to_s
-        res = tableView.dequeueReusableHeaderFooterViewWithIdentifier(reuseIdentifier)
-        unless res
-          raise "Missing dequeue, maybe you want: registerClass(RMXTableHandlerViewHeaderFooterView, forHeaderFooterViewReuseIdentifier: #{reuseIdentifier.inspect})"
-        end
-        res.context = context
+      opts = delegate.tableHandler(self, optsForSection:section) || {}
+      reuseIdentifier = opts[:reuseIdentifier].to_s
+      header = nil
+      if header = opts[:header]
+        # noop
+      elsif reuseIdentifier.empty? || !registered_reuse_identifiers.key?(reuseIdentifier)
+        log("Unknown reuseIdentifier '#{reuseIdentifier}'", context)
+      else
+        context.update(opts)
+        header = tableView.dequeueReusableHeaderFooterViewWithIdentifier(reuseIdentifier)
+        header.context = context
       end
-      # p "viewForHeaderInSection", section, res
-      res
+      log("viewForHeaderInSection", section, header) if debug
+      header
     end
   end
 
   def tableView(tableView, heightForHeaderInSection:section)
-    RMX.assert_main_thread!
-    if @respondsToHeaderHeightForContext || delegate.respondsToSelector('tableHandler:headerHeightForContext:')
-      @respondsToHeaderHeightForContext = true
-      context = {
-        :tableHandler => self,
-        :tableView => tableView,
-        :section => section
-      }
-      res = delegate.tableHandler(self, headerHeightForContext:context)
-      # p "heightForHeaderInSection", section, res
-      res
-    else
-      0
+    height = nil
+    if delegateRespondsTo?('tableHandler:optsForSection:')
+      opts = delegate.tableHandler(self, optsForSection:section) || {}
+      reuseIdentifier = opts[:reuseIdentifier].to_s
+      type = :empty
+      unless height = (reuseIdentifier.empty? || !registered_reuse_identifiers.key?(reuseIdentifier)) && 0
+        type = :fixed
+        height = opts[:fixed_height]
+      end
     end
+    height ||= 0
+    log("heightForHeaderInSection", section, height) if debug
+    height
   end
 
-  def tableView(tableView, numberOfRowsInSection: section)
-    RMX.assert_main_thread!
-    res = delegate.tableHandler(self, dataForSectionName:@sections[section]).size
-    # p "numberOfRowsInSection", res
+  def tableView(tableView, numberOfRowsInSection:section)
+    res = if delegateRespondsTo?('tableHandler:numberOfRowsInSection:')
+      delegate.tableHandler(self, numberOfRowsInSection:section)
+    else
+      delegate.tableHandler(self, dataForSection:section).size
+    end
+    log("numberOfRowsInSection", res) if debug
     res
   end
 
   def numberOfSectionsInTableView(tableView)
-    RMX.assert_main_thread!
-    res = @sections.size
-    # p "numberOfSectionsInTableView", res
+    res = if delegateRespondsTo?('numberOfSectionsInTableHandler:')
+      delegate.numberOfSectionsInTableHandler(self)
+    else
+      1
+    end
+    log("numberOfSectionsInTableView", res) if debug
     res
   end
 
-  def respondsToClickForContext?
-    if @respondsToClickForContext || delegate.respondsToSelector('tableHandler:clickForContext:')
-      @respondsToClickForContext = true
-    end
-  end
-
   def tableView(tableView, didSelectRowAtIndexPath:indexPath)
-    RMX.assert_main_thread!
-    if respondsToClickForContext?
-      context = {
-        :tableHandler => self,
-        :tableView => tableView,
-        :indexPath => indexPath,
-        :data => delegate.tableHandler(self, dataForSectionName:@sections[indexPath.section])[indexPath.row]
-      }
-      delegate.tableHandler(self, clickForContext:context)
+    if delegateRespondsTo?('tableHandler:clickForData:section:row:')
+      data = delegate.tableHandler(self, dataForSection:indexPath.section)[indexPath.row]
+      delegate.tableHandler(self, clickForData:data, section:indexPath.section, row:indexPath.row)
       tableView.deselectRowAtIndexPath(indexPath, animated:true)
     end
-  end
-
-  def updateHeight(height, data:data, reuseIdentifier:reuseIdentifier)
-    reuseIdentifier = reuseIdentifier.to_s
-    @heights[reuseIdentifier] ||= {}
-    heights = @heights[reuseIdentifier]
-    current_height = heights[data]
-    if current_height != height
-      heights[data] = height
-      return true
-    end
-    false
-  end
-
-  def scrollViewIsAnimating?
-    !!@animating
-  end
-
-  def scrollViewDidScroll(scrollView)
-    @animating = true
-  end
-
-  def scrollViewWillBeginDragging(scrollView)
-    @animating = true
-    true
-  end
-
-  def scrollViewDidEndDragging(scrollView, willDecelerate:willDecelerate)
-    unless willDecelerate
-      @animating = nil
-    end
-    nil
-  end
-
-  def scrollViewDidEndDecelerating(scrollView)
-    @animating = nil
-    nil
-  end
-
-  def scrollViewDidEndScrollingAnimation(scrollView)
-    @animating = nil
-    nil
   end
 
 end

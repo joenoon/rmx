@@ -2,6 +2,10 @@ class RMX
 
   RECURSIVE_LOCK = NSRecursiveLock.new
 
+  def self.mainThread?
+    NSThread.currentThread.isMainThread
+  end
+
   def self.synchronized(&block)
     res = nil
     RECURSIVE_LOCK.lock
@@ -20,10 +24,19 @@ class RMX
     end
   end
 
+  def self.after_animations(&block)
+    CATransaction.begin
+    sblock = safe_block(block)
+    CATransaction.setCompletionBlock(lambda do
+      sblock.call
+    end.weak!)
+    CATransaction.commit
+  end
+
   # Raises an exception when called from a thread other than the main thread.
   # Good for development and experimenting.
   def self.assert_main_thread!
-    raise "Expected main thread. #{Dispatch::Queue.current.description}" unless NSThread.currentThread.isMainThread
+    raise "Expected main thread. #{Dispatch::Queue.current.description}" unless mainThread?
   end
 
   # call the block immediately if called on the main thread,
