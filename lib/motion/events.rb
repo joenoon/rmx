@@ -95,15 +95,27 @@ class RMX
   end
 
   # trigger an event with value on this object
-  def trigger(event, *values)
-    RMXEventsFromProxy::QUEUE.async do # optional
-      RMX.synchronized do
-        if sig = rac_signal_for_event?(event)
-          log("trigger", event, values, sig) if DEBUG_EVENTS
-          sig.sendNext(values)
-        end
+  def _trigger(event, *values)
+    RMX.synchronized do
+      if sig = rac_signal_for_event?(event)
+        log("trigger", event, values, sig) if DEBUG_EVENTS
+        sig.sendNext(values)
       end
     end
+  end
+
+  if RMX::Env['rmx_trigger_async'] == '1'
+
+    def trigger(event, *values)
+      RMXEventsFromProxy::QUEUE.async do
+        _trigger(event, *values)
+      end
+    end
+
+  else
+
+    alias_method 'trigger', '_trigger'
+
   end
 
   def rac_signal_for_event(event)
