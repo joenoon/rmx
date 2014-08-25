@@ -22,7 +22,7 @@ class RMX
         arr += [ object, block.owner ]
       end
 
-      sblock = RMX.safe_block(block)
+      sblock = RMX.safe_block(block, "event block: #{arr.inspect}")
 
       sub = sig.subscribeNext(->(args) {
 
@@ -38,11 +38,17 @@ class RMX
           end
         end
 
-        if q == Dispatch::Queue.main
-          RMX.block_on_main_q(sblock, *args)
+        if NSThread.currentThread.isMainThread && q == Dispatch::Queue.main
+          unless sblock.call(*args)
+            log("killed sub because dead safe block") if DEBUG_EVENTS
+            sub.dispose
+          end
         else
           q.async do
-            sblock.call(*args)
+            unless sblock.call(*args)
+              log("killed sub because dead safe block") if DEBUG_EVENTS
+              sub.dispose
+            end
           end
         end
 
