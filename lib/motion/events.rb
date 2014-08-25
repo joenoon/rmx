@@ -1,52 +1,127 @@
 class RMX
 
-  CREATE_EVENT_PROXY = proc do
-    RMXEventsFromProxy.new
-  end
-
-  def events_from_proxy
-    sync_ivar(:_rmx_events_from_proxy, &CREATE_EVENT_PROXY)
-  end
-
-  def _events_from_proxy
-    sync_ivar(:_rmx_events_from_proxy)
-  end
+  # requires ReactiveCocoa
 
   # register a callback when an event is triggered on this object.
   def on(event, opts={}, &block)
-    if object = unsafe_unretained_object
-      _opts = opts.dup
-      if _opts[:strong]
-        _opts[:strong] = [ object, block.owner ]
+    if object = unsafe_unretained_object and sig = rac_signal_for_event(event)
+      log("on", event, "opts", opts) if DEBUG_EVENTS
+
+      q = opts[:queue]
+      if q == :async
+        q = RMXEventsFromProxy::QUEUE
+      elsif q == :main
+        q = Dispatch::Queue.main
       end
-      events_from_proxy.on(event, _opts, &block)
+      q ||= Dispatch::Queue.main
+
+      limit = opts[:limit]
+
+      arr = [ object.rmx_object_desc, event ]
+      if strong = opts[:strong] 
+        arr += [ object, block.owner ]
+      end
+
+      sblock = RMX.safe_block(block)
+
+      sub = sig.subscribeNext(->(args) {
+
+        arr # <- this is to close over object and block.owner if :strong is specified
+
+        log("call", "event", event, "args", args, "arr", arr) if DEBUG_EVENTS
+
+        if limit
+          limit -= 1
+          if limit == 0
+            log("limit reached", event) if DEBUG_EVENTS
+            sub.dispose
+          end
+        end
+
+        if q == Dispatch::Queue.main
+          RMX.block_on_main_q(sblock, *args)
+        else
+          q.async do
+            sblock.call(*args)
+          end
+        end
+
+      })
+
+      if opts[:now]
+        sig.sendNext([])
+      end
+
+      RMX.safe_block(proc do
+        log("off_block called", event) if DEBUG_EVENTS
+        sub.dispose
+      end)
     end
+  end
+  
+  def log(*args)
+    p *args
   end
 
   def now_and_on(event, opts={}, &block)
-    events_from_proxy.now_and_on(event, opts.dup, &block)
+    on(event, opts.merge({ :now => true }), &block)
   end
 
   # register a callback when an event is triggered on this object and remove it after it fires once
   def once(event, opts={}, &block)
-    _opts = opts.dup
-    _opts[:limit] = 1
-    on(event, _opts, &block)
+    on(event, opts.merge({ :limit => 1 }), &block)
   end
 
-  # RMX(@model).off(:fire, &block)    # remove :fire for specific handler
-  # RMX(@model).off(:fire)            # remove all :fire in all knowns contexts
-  # RMX(@model).off                   # remove all events in all known contexts
-  def off(event=nil, execution_block=nil)
-    if proxy = _events_from_proxy
-      proxy.off(event, execution_block)
+  # RMX(@model).off(:fire)            # remove all :fire events
+  # RMX(@model).off                   # remove all events
+  def off(event=nil)
+    RMX.synchronized do
+      if rac_signals = ivar(:rac_signals)
+        if event
+          if sig = rac_signals[event]
+            sig.sendCompleted
+            rac_signals.delete(event)
+          end
+        else
+          values = rac_signals.values
+          while values.size > 0
+            sig = values.shift
+            sig.sendCompleted
+          end
+          rac_signals.clear
+        end
+      end
     end
   end
 
   # trigger an event with value on this object
   def trigger(event, *values)
-    if proxy = _events_from_proxy
-      proxy.trigger(event, *values)
+    RMXEventsFromProxy::QUEUE.async do # optional
+      RMX.synchronized do
+        if sig = rac_signal_for_event?(event)
+          log("trigger", event, values, sig) if DEBUG_EVENTS
+          sig.sendNext(values)
+        end
+      end
+    end
+  end
+
+  def rac_signal_for_event(event)
+    RMX.synchronized do
+      rac_signals = ivar(:rac_signals)
+      if rac_signals.nil?
+        rac_signals = {}
+        ivar(:rac_signals, rac_signals)
+      end
+      rac_signals[event] ||= RACSubject.subject
+    end
+  end
+
+  def rac_signal_for_event?(event)
+    RMX.synchronized do
+      if rac_signals = ivar(:rac_signals)
+        rac_signals[event]
+      end
     end
   end
 

@@ -14,7 +14,8 @@ class RMX
     res
   end
 
-  def self.safe_block(block)
+  def self.safe_block(block_value=nil, &do_block)
+    block = block_value || do_block
     weak_block_owner_holder = RMXWeakHolder.new(block.owner)
     block.weak!
     proc do |*args|
@@ -22,6 +23,27 @@ class RMX
         block.call(*args)
       end
     end
+  end
+
+  def self.safe_lambda(block_value=nil, &do_block)
+    block = block_value || do_block
+    x = safe_block(block)
+    case block.arity
+    when 0
+      -> { x.call }
+    when 1
+      ->(a) { x.call(a) }
+    when 2
+      ->(a,b) { x.call(a,b) }
+    when 3
+      ->(a,b,c) { x.call(a,b,c) }
+    when 4
+      ->(a,b,c,d) { x.call(a,b,c,d) }
+    when 5
+      ->(a,b,c,d,e) { x.call(a,b,c,d,e) }
+    else
+      raise "unsupported arity #{block.arity}"
+    end.weak!
   end
 
   def self.after_animations(&block)
