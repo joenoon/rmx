@@ -21,6 +21,8 @@ class RMX
     proc do |*args|
       if wbo = weak_block_owner_holder.value
         block.call(*args)
+      elsif DEBUG_SAFE_BLOCKS
+        NSLog("PREVENTED SAFE BLOCK, block owner: #{weak_block_owner_holder.inspect}")
       end
     end
   end

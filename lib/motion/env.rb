@@ -4,6 +4,7 @@ class RMX
   DEBUG_DEALLOC = Env['rmx_debug_dealloc'] == '1'
   DEBUG_EVENTS = Env['rmx_debug_events'] == '1'
   DEBUG_QUEUES = Env['rmx_debug_queues'] == '1'
+  DEBUG_SAFE_BLOCKS = Env['rmx_debug_safe_blocks'] == '1'
   DEBUG = Env['rmx_debug'] == '1'
 
 end
