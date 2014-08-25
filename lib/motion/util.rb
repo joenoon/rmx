@@ -14,22 +14,26 @@ class RMX
     res
   end
 
-  def self.safe_block(block_value=nil, &do_block)
+  def self.safe_block(block_value=nil, notes=nil, &do_block)
     block = block_value || do_block
-    weak_block_owner_holder = RMXWeakHolder.new(block.owner)
+    weak_block_owner_holder = RMXWeakHolder.new(block.owner, notes)
     block.weak!
     proc do |*args|
       if wbo = weak_block_owner_holder.value
         block.call(*args)
-      elsif DEBUG_SAFE_BLOCKS
-        NSLog("PREVENTED SAFE BLOCK, block owner: #{weak_block_owner_holder.inspect}")
+        true
+      else
+        if DEBUG_SAFE_BLOCKS
+          NSLog("PREVENTED SAFE BLOCK, block owner: #{weak_block_owner_holder.inspect}")
+        end
+        false
       end
     end
   end
 
-  def self.safe_lambda(block_value=nil, &do_block)
+  def self.safe_lambda(block_value=nil, notes=nil, &do_block)
     block = block_value || do_block
-    x = safe_block(block)
+    x = safe_block(block, notes)
     case block.arity
     when 0
       -> { x.call }
@@ -50,7 +54,7 @@ class RMX
 
   def self.after_animations(&block)
     CATransaction.begin
-    sblock = safe_block(block)
+    sblock = safe_block(block, "after_animations")
     CATransaction.setCompletionBlock(lambda do
       sblock.call
     end.weak!)

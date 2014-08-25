@@ -1,7 +1,8 @@
 class RMXWeakHolder
 
-  def initialize(_value=nil)
+  def initialize(_value=nil, _notes=nil)
     @value_desc = _value.rmx_object_desc
+    @notes = _notes
     @holder = NSHashTable.weakObjectsHashTable
     self.value = _value
     self
@@ -27,9 +28,9 @@ class RMXWeakHolder
 
   def inspect
     if val = value
-      "(weak)#{@value_desc}"
+      "(weak)#{@value_desc}<#{@notes}>"
     else
-      "(deallocated)#{@value_desc}"
+      "(deallocated)#{@value_desc}<#{@notes}>"
     end
   end
 
