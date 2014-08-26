@@ -59,10 +59,10 @@ class RMX
         sig.sendNext([])
       end
 
-      RMX.safe_block(proc do
+      proc do
         log("off_block called", event) if DEBUG_EVENTS
         sub.dispose
-      end)
+      end
     end
   end
   
