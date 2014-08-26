@@ -17,16 +17,14 @@ class RMX
 
       limit = opts[:limit]
 
-      info = if DEBUG_EVENTS
-        [ object.rmx_object_desc, block.owner.rmx_object_desc, event ].inspect
-      end
+      info = [ object.rmx_object_desc, block.owner.rmx_object_desc, event ].inspect
 
       close_over_if_strong = opts[:strong] ? [ object, block.owner ] : nil
 
       dealloc_sig = RACSignal.zip([ object.rac_willDeallocSignal, block.owner.rac_willDeallocSignal ])
 
-      # block is made weak.  it remains valid as long as block.owner is alive.
-      block.weak!
+      # block is made safe.  it remains valid as long as block.owner is alive.
+      sblock = RMX.safe_block(block, "event block: #{info}")
 
       # subscribeNext until either the object or block.owner deallocates
       sub = sig.takeUntil(dealloc_sig).subscribeNext(->(args) {
@@ -46,10 +44,10 @@ class RMX
         end
 
         if NSThread.currentThread.isMainThread && q == Dispatch::Queue.main
-          block.call(*args)
+          sblock.call(*args)
         else
           q.async do
-            block.call(*args)
+            sblock.call(*args)
           end
         end
 
