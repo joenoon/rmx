@@ -17,18 +17,25 @@ class RMX
 
       limit = opts[:limit]
 
-      arr = [ object.rmx_object_desc, event ]
-      if strong = opts[:strong] 
-        arr += [ object, block.owner ]
+      info = if DEBUG_EVENTS
+        [ object.rmx_object_desc, block.owner.rmx_object_desc, event ].inspect
       end
 
-      sblock = RMX.safe_block(block, "event block: #{arr.inspect}")
+      close_over_if_strong = opts[:strong] ? [ object, block.owner ] : nil
 
-      sub = sig.subscribeNext(->(args) {
+      dealloc_sig = RACSignal.zip([ object.rac_willDeallocSignal, block.owner.rac_willDeallocSignal ])
 
-        arr # <- this is to close over object and block.owner if :strong is specified
+      # block is made weak.  it remains valid as long as block.owner is alive.
+      block.weak!
 
-        log("call", "event", event, "args", args, "arr", arr) if DEBUG_EVENTS
+      # subscribeNext until either the object or block.owner deallocates
+      sub = sig.takeUntil(dealloc_sig).subscribeNext(->(args) {
+
+        # if :strong is specified, this block closes over object and block.owner.
+        # this subscription must be disposed before they can be released.
+        close_over_if_strong
+
+        log("call", "event", event, "args", args, "info", info) if DEBUG_EVENTS
 
         if limit
           limit -= 1
@@ -39,16 +46,10 @@ class RMX
         end
 
         if NSThread.currentThread.isMainThread && q == Dispatch::Queue.main
-          unless sblock.call(*args)
-            log("killed sub because dead safe block") if DEBUG_EVENTS
-            sub.dispose
-          end
+          block.call(*args)
         else
           q.async do
-            unless sblock.call(*args)
-              log("killed sub because dead safe block") if DEBUG_EVENTS
-              sub.dispose
-            end
+            block.call(*args)
           end
         end
 
