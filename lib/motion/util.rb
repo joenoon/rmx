@@ -56,7 +56,9 @@ class RMX
     CATransaction.begin
     sblock = safe_block(block, "after_animations")
     CATransaction.setCompletionBlock(lambda do
+      CATransaction.begin
       sblock.call
+      CATransaction.commit
     end.weak!)
     CATransaction.commit
   end
