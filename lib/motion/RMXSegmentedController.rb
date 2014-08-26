@@ -66,9 +66,10 @@ class RMXSegmentedController < RMXViewController
     end
   end
 
-  def rmx_dealloc
+  def dealloc
     cleanup_active
     @controller_indexes = nil
+    super
   end
 
 end

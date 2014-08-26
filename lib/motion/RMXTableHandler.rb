@@ -50,12 +50,11 @@ class RMXTableHandler
     x
   end
 
-  def rmx_dealloc
+  def dealloc
     if tv = tableView
       tv.dataSource = nil
       tv.delegate = nil
     end
-    RMX.new(self).nil_instance_variables!
     super
   end
 

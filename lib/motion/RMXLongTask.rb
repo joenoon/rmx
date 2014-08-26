@@ -123,11 +123,8 @@ class RMXLongTask
     end
   end
 
-  def rmx_dealloc
-    if RMX::DEBUG_DEALLOC
-      p "DEALLOC: #{@desc}"
-    end
-    super
+  def rmx_object_desc
+    "#{super}<#{@desc}>"
   end
 
 end

@@ -118,7 +118,7 @@ class RMXNavigationController < UINavigationController
     super
   end
 
-  def rmx_dealloc
+  def dealloc
     NSNotificationCenter.defaultCenter.removeObserver(self)
     super
   end

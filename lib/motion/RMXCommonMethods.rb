@@ -1,19 +1,7 @@
 module RMXCommonMethods
 
-  def rmx_dealloc
-  end
-
-  if RMX::DEBUG_DEALLOC
-    def dealloc
-      p " - dealloc! (queue: #{Dispatch::Queue.current.description})"
-      rmx_dealloc
-      super
-    end
-  else
-    def dealloc
-      rmx_dealloc
-      super
-    end
+  def rmx_dealloc_inspect
+    "#{rmx_object_desc} - dealloc! (queue: #{Dispatch::Queue.current.description})"
   end
 
   def description
