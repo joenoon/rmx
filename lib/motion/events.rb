@@ -58,10 +58,17 @@ class RMX
         sig.sendNext([])
       end
 
-      RMX.safe_block(proc do
-        log("off_block called", event) if DEBUG_EVENTS
-        sub.dispose
-      end)
+      unbound = false
+      proc do
+        unless unbound
+          unbound = true
+          sub.dispose
+          log("off_block called", event) if DEBUG_EVENTS
+          true
+        else
+          false
+        end
+      end
     end
   end
   
