@@ -69,8 +69,11 @@ class RMXTableHandler
   end
 
   def animateUpdates
+    log("animateUpdates") if debug
     RMX.after_animations do
-      if tv = @tableView and tv.superview
+      log("animateUpdates after_animations complete") if debug
+      if tv = tableView and tv.superview
+        log("animateUpdates has tableView and superview") if debug
         tv.beginUpdates
         tv.endUpdates
       end
