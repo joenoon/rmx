@@ -14,6 +14,7 @@ Motion::Project::App.setup do |app|
     accessors
     events
     ui
+    RACSignal+RMX
     RMXCommonMethods
     RMXLongTask
     RMXWeakHolder

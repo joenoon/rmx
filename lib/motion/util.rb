@@ -91,6 +91,23 @@ class RMX
     end
   end
 
+  Dispatch.once do
+    $rmx_log_deallocs = NSHashTable.weakObjectsHashTable
+  end
+
+  def self.log_dealloc(object)
+    RECURSIVE_LOCK.lock
+    $rmx_log_deallocs.addObject(object)
+    RECURSIVE_LOCK.unlock
+    if DEBUG_DEALLOC
+      me = object.rmx_object_desc
+      object.rac_willDeallocSignal.subscribeCompleted(-> {
+        NSLog("#{me} = DEALLOC!!!")
+      })
+    end
+    nil
+  end
+
   def require_queue!(queue, file, line)
     unless Dispatch::Queue.current.description == queue.description
       raise "WRONG QUEUE: was: #{Dispatch::Queue.current.description}, expected: #{queue.description}. #{@unsafe_unretained_object_holder.inspect} #{file}:#{line}, #{caller.inspect}"

@@ -65,12 +65,19 @@ class RMXTableHandler
     @registered_reuse_identifiers = {}
     @delegateRespondsTo = {}
     @allowRefreshHeights = false
+    @animateUpdatesSignal = RACSubject.subject
+    @animateUpdatesSignal
+    .throttle(0.25)
+    .deliverOn(RACScheduler.mainThreadScheduler)
+    .subscribeNext(RMX.safe_lambda do |v|
+      animateUpdates
+    end)
     self
   end
 
   def animateUpdates
     RMX.after_animations do
-      if tv = @tableView and tv.superview
+      if tv = tableView and tv.superview
         tv.beginUpdates
         tv.endUpdates
       end
@@ -98,9 +105,7 @@ class RMXTableHandler
 
   def log(*args)
     args.unshift debug
-    Dispatch::Queue.concurrent(:low).async do
-      p *args
-    end
+    p *args
   end
 
   def invalidateHeightForData(data, reuseIdentifier:reuseIdentifier)
@@ -109,9 +114,7 @@ class RMXTableHandler
     log("invalidateHeightForData", reuseIdentifier, data) if debug
     if allowRefreshHeights
       log("invalidateHeightForData animateUpdates") if debug
-      Dispatch::Queue.main.async do
-        animateUpdates
-      end
+      @animateUpdatesSignal.sendNext(true)
     else
       log("invalidateHeightForData animateUpdates skipped because of allowRefreshHeights == false") if debug
     end

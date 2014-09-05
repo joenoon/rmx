@@ -8,6 +8,7 @@ class RMXViewController < UIViewController
 
   def init
     s = super
+    RMX.log_dealloc(self)
     NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
     listenForKeyboardChanged
     prepare
