@@ -22,7 +22,11 @@ module RMXKeyboardHelpers
   end
 
   def listenForKeyboardChanged
-    NSNotificationCenter.defaultCenter.addObserver(self, selector:'keyboardChangedInternal:', name:"rmxKeyboardChanged", object:nil)
+    NSNotificationCenter.defaultCenter.rac_addObserverForName("rmxKeyboardChanged", object:nil)
+    .takeUntil(rac_willDeallocSignal)
+    .subscribeNext(RMX.safe_lambda do |notification|
+      keyboardChangedInternal(notification)
+    end)
   end
 
   # listens for the rmxKeyboardChanged notification and extracts the userInfo to call a friendlier method

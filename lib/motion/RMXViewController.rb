@@ -9,7 +9,11 @@ class RMXViewController < UIViewController
   def init
     s = super
     RMX.log_dealloc(self)
-    NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
+    NSNotificationCenter.defaultCenter.rac_addObserverForName(UIApplicationWillEnterForegroundNotification, object:nil)
+    .takeUntil(rac_willDeallocSignal)
+    .subscribeNext(RMX.safe_lambda do |notification|
+      refresh
+    end)
     listenForKeyboardChanged
     prepare
     s
@@ -56,11 +60,6 @@ class RMXViewController < UIViewController
 
   def didReceiveMemoryWarning
     p "didReceiveMemoryWarning"
-    super
-  end
-
-  def rmx_dealloc
-    NSNotificationCenter.defaultCenter.removeObserver(self)
     super
   end
 

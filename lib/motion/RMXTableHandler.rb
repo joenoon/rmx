@@ -50,15 +50,6 @@ class RMXTableHandler
     x
   end
 
-  def rmx_dealloc
-    if tv = tableView
-      tv.dataSource = nil
-      tv.delegate = nil
-    end
-    RMX.new(self).nil_instance_variables!
-    super
-  end
-
   def initialize
     @debug = false
     @heights = {}
@@ -71,6 +62,12 @@ class RMXTableHandler
     .deliverOn(RACScheduler.mainThreadScheduler)
     .subscribeNext(RMX.safe_lambda do |v|
       animateUpdates
+    end)
+    rac_willDeallocSignal.subscribeCompleted(RMX.safe_lambda do
+      if tv = tableView
+        tv.dataSource = nil
+        tv.delegate = nil
+      end
     end)
     self
   end

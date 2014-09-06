@@ -8,11 +8,6 @@ class RMXEventsFromProxy
     @events = {}
   end
 
-  # def rmx_dealloc
-  #   off
-  #   super
-  # end
-
   def on(event, opts={}, &block)
     block ||= proc {}
     event = event.to_s

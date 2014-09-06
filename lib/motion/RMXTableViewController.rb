@@ -14,7 +14,11 @@ class RMXTableViewController < UITableViewController
 
   def init
     s = super
-    NSNotificationCenter.defaultCenter.addObserver(self, selector:'refresh', name:UIApplicationWillEnterForegroundNotification, object:nil)
+    NSNotificationCenter.defaultCenter.rac_addObserverForName(UIApplicationWillEnterForegroundNotification, object:nil)
+    .takeUntil(rac_willDeallocSignal)
+    .subscribeNext(RMX.safe_lambda do |notification|
+      refresh
+    end)
     listenForKeyboardChanged
     prepare
     s
@@ -58,9 +62,4 @@ class RMXTableViewController < UITableViewController
     super
   end
   
-  def rmx_dealloc
-    NSNotificationCenter.defaultCenter.removeObserver(self)
-    super
-  end
-
 end

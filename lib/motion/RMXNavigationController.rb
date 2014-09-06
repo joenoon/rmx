@@ -118,11 +118,6 @@ class RMXNavigationController < UINavigationController
     super
   end
 
-  def rmx_dealloc
-    NSNotificationCenter.defaultCenter.removeObserver(self)
-    super
-  end
-
   def self.create(rootViewController)
     v = alloc.initWithNavigationBarClass(UINavigationBar, toolbarClass:nil)
     v.delegate = v

@@ -5,11 +5,6 @@ class RMXView < UIView
 
   attr_accessor :updatedSize, :reportSizeChanges
 
-  def rmx_dealloc
-    NSNotificationCenter.defaultCenter.removeObserver(self)
-    super
-  end
-
   def prepare
   end
 
