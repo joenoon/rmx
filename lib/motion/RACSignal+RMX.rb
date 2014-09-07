@@ -8,17 +8,6 @@ class RACSignal
     end
   end
 
-  def self.combineLatestOrEmptyToArray(signals)
-    if signals.any?
-      combineLatest(signals)
-      .flattenMap(->(tuple) {
-        RACSignal.return(tuple.allObjects)
-      })
-    else
-      RACSignal.return([])
-    end
-  end
-
 end
 
 
