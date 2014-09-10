@@ -14,17 +14,9 @@ class RMXTableViewController < UITableViewController
 
   def init
     s = super
-    NSNotificationCenter.defaultCenter.rac_addObserverForName(UIApplicationWillEnterForegroundNotification, object:nil)
-    .takeUntil(rac_willDeallocSignal)
-    .subscribeNext(RMX.safe_lambda do |notification|
-      refresh
-    end)
     listenForKeyboardChanged
     prepare
     s
-  end
-
-  def refresh
   end
 
   def viewDidLoad

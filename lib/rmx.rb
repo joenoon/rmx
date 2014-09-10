@@ -12,6 +12,7 @@ Motion::Project::App.setup do |app|
     layout
     util
     accessors
+    rac_app_signals
     events
     ui
     RACSignal+RMX
