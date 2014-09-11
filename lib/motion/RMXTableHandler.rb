@@ -41,9 +41,10 @@ class RMXTableHandler
 
   attr_accessor :registered_reuse_identifiers, :debug, :allowRefreshHeights
 
-  def self.forTable(tableView)
+  def self.forTable(tableView, delegate:delegate)
     x = new
     x.tableView = tableView
+    x.delegate = delegate
     tableView.dataSource = x
     tableView.delegate = x
     x.registerClass(RMXTableHandlerViewCell, forCellReuseIdentifier:"Empty")
