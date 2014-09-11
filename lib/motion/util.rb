@@ -101,8 +101,9 @@ class RMX
     RECURSIVE_LOCK.unlock
     if DEBUG_DEALLOC
       me = object.rmx_object_desc
+      NSLog("     -     INIT      - #{me}")
       object.rac_willDeallocSignal.subscribeCompleted(-> {
-        NSLog("#{me} = DEALLOC!!!")
+        NSLog("     -     DEALLOC   - #{me}")
       })
     end
     nil
