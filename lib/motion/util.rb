@@ -1,7 +1,5 @@
 class RMX
 
-  RECURSIVE_LOCK = NSRecursiveLock.new
-
   def self.mainThread?
     NSThread.currentThread.isMainThread
   end
@@ -179,6 +177,7 @@ class RMX
     end
   end
 
+  # @deprecated
   def debounce(unique_id, opts={}, &block)
     if (seconds = opts[:seconds]) && seconds > 0
       debounce_seconds(seconds, unique_id, opts[:now], &block)
@@ -187,6 +186,7 @@ class RMX
     end
   end
 
+  # @deprecated
   def debounce_runloop(unique_id, run_immediately=false, &block)
     if object = unsafe_unretained_object
       lookup = Thread.current["rmx_debounce_runloop"] ||= {}
@@ -207,6 +207,7 @@ class RMX
     end
   end
 
+  # @deprecated
   def debounce_seconds(seconds, unique_id, run_immediately=false, &block)
     if object = unsafe_unretained_object
       lookup = Thread.current["rmx_debounce_seconds"] ||= {}

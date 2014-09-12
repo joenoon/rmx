@@ -24,8 +24,6 @@ Motion::Project::App.setup do |app|
     RMXWeakToStrongHash
     RMXStrongToWeakHash
     RMXSynchronizedStrongToWeakHash
-    RMXEventsFromProxy
-    RMXExecutionBlock
     RMXSetAttributes
     RMXConcurrentOperation
     RMXViewControllerPresentation
