@@ -136,8 +136,6 @@ class RMX
     rac_appSignal(UIContentSizeCategoryDidChangeNotification)
   end
 
-  RECURSIVE_LOCK = NSRecursiveLock.new
-
   def self.launchedAt
     RECURSIVE_LOCK.lock
     res = @launchedAt
