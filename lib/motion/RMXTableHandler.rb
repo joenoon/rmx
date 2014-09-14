@@ -43,6 +43,9 @@ class RMXTableHandler
 
   def self.forTable(tableView, delegate:delegate)
     x = new
+    if tableView.respondsToSelector('setLayoutMargins:')
+      tableView.layoutMargins = UIEdgeInsetsZero
+    end
     x.tableView = tableView
     x.delegate = delegate
     tableView.dataSource = x

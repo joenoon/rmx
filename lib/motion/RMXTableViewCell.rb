@@ -7,6 +7,9 @@ class RMXTableViewCell < UITableViewCell
   def initWithStyle(style, reuseIdentifier:reuseIdentifier)
     reuseIdentifier = reuseIdentifier.to_s
     s = super(style, reuseIdentifier)
+    if respondsToSelector('setLayoutMargins:')
+      self.layoutMargins = UIEdgeInsetsZero
+    end
     @innerContentView = RMXView.new
     RMX::Layout.new do |layout|
       layout.view = contentView
