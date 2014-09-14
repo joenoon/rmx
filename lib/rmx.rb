@@ -33,6 +33,7 @@ Motion::Project::App.setup do |app|
     RMXTableViewController
     RMXViewController
     RMXSegmentedController
+    RMXInputAccessoryViewResponder
     RMXView
     RMXActionSheet
     RMXAutoLayoutLabel

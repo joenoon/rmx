@@ -9,6 +9,7 @@ class RMXViewController < UIViewController
   def init
     s = super
     RMX.log_dealloc(self)
+    viewStateSignal
     listenForKeyboardChanged
     prepare
     s
@@ -23,30 +24,6 @@ class RMXViewController < UIViewController
   def viewDidLoad
     s = super
     loaded
-    s
-  end
-
-  def viewWillAppear(animated)
-    s = super
-    rmx_viewWillAppear(animated)
-    s
-  end
-
-  def viewDidAppear(animated)
-    s = super
-    rmx_viewDidAppear(animated)
-    s
-  end
-
-  def viewWillDisappear(animated)
-    s = super
-    rmx_viewWillDisappear(animated)
-    s
-  end
-
-  def viewDidDisappear(animated)
-    s = super
-    rmx_viewDidDisappear(animated)
     s
   end
 

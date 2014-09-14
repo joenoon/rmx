@@ -60,12 +60,8 @@ class RMXView < UIView
             RMX.new(self).debounce(:reloadTableUpdatedSize) do
               # p "debounced reload"
               if controller = tableView.lAncestorViewController
-                if controller.viewState == :viewDidAppear
-                  tableView.beginUpdates
-                  tableView.endUpdates
-                else
-                  tableView.reloadData
-                end
+                tableView.beginUpdates
+                tableView.endUpdates
               end
             end
           end

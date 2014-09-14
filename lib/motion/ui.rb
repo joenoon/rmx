@@ -12,6 +12,14 @@ class RMX
     1.0 / UIScreen.mainScreen.scale
   end
 
+  def self.resignApplicationFirstResponder
+    windows = [] + UIApplication.sharedApplication.windows
+    while window = windows.pop
+      window.endEditing(true)
+    end
+    nil
+  end
+
   def self.keyboardWillChangeFrame(notification)
     @keyboardWillChangeFrameNotification = notification
     processKeyboardWillChange

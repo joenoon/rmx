@@ -3,114 +3,67 @@ class RMXNavigationController < UINavigationController
   include RMXCommonMethods
   include RMXViewControllerPresentation
 
-  RMX.new(self).weak_attr_accessor :lastShownViewController
+  attr_accessor :transitionSignal, :transitionSubject, :transitioning, :rootViewControllerOnLoad
 
-  def animating?
-    if vc = viewControllers.last
-      vc != lastShownViewController
-    end
+  def navigationController(navigationController, willShowViewController:view_controller, animated:animated)
+    @transitioning = true
+    navigationController.transitionSubject.sendNext(true)
   end
 
   def navigationController(navigationController, didShowViewController:view_controller, animated:animated)
-    self.lastShownViewController = view_controller
-    Dispatch::Queue.main.async do
-      unless animating?
-        navigationBar.userInteractionEnabled = true
-        RMX.new(self).trigger(:done_animating)
-      end
+    @transitioning = false
+    @queued_ops.each do |item|
+      send(*item)
     end
+    @queued_ops.clear
+    navigationController.transitionSubject.sendNext(false)
   end
 
   def pushViewController(view_controller, animated:animated)
-    unless animating?
+    if !@transitioning
       super
     else
-      navigationBar.userInteractionEnabled = false
-      p "DELAYED pushViewController:animated:", view_controller, animated
-      RMX.new(self).once(:done_animating) do
-        p "RESUMED pushViewController:animated:", view_controller, animated
-        pushViewController(view_controller, animated:animated)
-      end
-      nil
+      @queued_ops << [ 'pushViewController:animated:', view_controller, false ]
     end
+    nil
   end
 
   def popViewControllerAnimated(animated)
-    unless animating?
+    if !@transitioning
       super
     else
-      navigationBar.userInteractionEnabled = false
-      p "DELAYED popViewControllerAnimated:", animated
-      RMX.new(self).once(:done_animating) do
-        p "RESUMED popViewControllerAnimated:", animated
-        popViewControllerAnimated(animated)
-      end
-      nil
+      @queued_ops << [ 'popViewControllerAnimated:', false ]
     end
+    nil
   end
 
   def popToRootViewControllerAnimated(animated)
-    unless animating?
+    if !@transitioning
       super
     else
-      navigationBar.userInteractionEnabled = false
-      p "DELAYED popToRootViewControllerAnimated:", animated
-      RMX.new(self).once(:done_animating) do
-        p "RESUMED popToRootViewControllerAnimated:", animated
-        popToRootViewControllerAnimated(animated)
-      end
-      nil
+      @queued_ops << [ 'popToRootViewControllerAnimated:', false ]
     end
+    nil
   end
+
   def popToViewController(view_controller, animated:animated)
-    unless animating?
+    if !@transitioning
+      if viewControllers.include?(view_controller)
+        super
+      end
+    else
+      @queued_ops << [ 'popToViewController:animated:', view_controller, false ]
+    end
+    nil
+  end
+
+  def setViewControllers(controllers, animated:animated)
+    if !@transitioning
       super
     else
-      navigationBar.userInteractionEnabled = false
-      p "DELAYED popToViewController:animated:", view_controller, animated
-      RMX.new(self).once(:done_animating) do
-        p "RESUMED popToViewController:animated:", view_controller, animated
-        popToViewController(view_controller, animated:animated)
-      end
-      nil
+      @queued_ops << [ 'setViewControllers:animated:', controllers, false ]
     end
-  end
-
-  def viewDidLoad
-    s = super
-    s
-  end
-
-  def viewWillAppear(animated)
-    s = super
-    rmx_viewWillAppear(animated)
-    s
-  end
-
-  def viewDidAppear(animated)
-    s = super
-    rmx_viewDidAppear(animated)
-    s
-  end
-
-  def viewWillDisappear(animated)
-    s = super
-    resignApplicationFirstResponder
-    rmx_viewWillDisappear(animated)
-    s
-  end
-
-  def viewDidDisappear(animated)
-    s = super
-    rmx_viewDidDisappear(animated)
-    s
-  end
-
-  def resignApplicationFirstResponder
-    windows = [] + UIApplication.sharedApplication.windows
-    while window = windows.pop
-      window.endEditing(true)
-    end
+    nil
   end
 
   def didReceiveMemoryWarning
@@ -118,10 +71,27 @@ class RMXNavigationController < UINavigationController
     super
   end
 
+  def viewDidLoad
+    RMX.log_dealloc(self)
+    @queued_ops = []
+    @transitionSubject = RACReplaySubject.replaySubjectWithCapacity(1)
+    @transitionSignal = @transitionSubject.subscribeOn(RACScheduler.mainThreadScheduler)
+
+    viewStateSignal
+
+    rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { RMX.resignApplicationFirstResponder }.weak!)
+
+    self.delegate = self
+
+    pushViewController(rootViewControllerOnLoad, animated: false) if rootViewControllerOnLoad
+
+    self.rootViewControllerOnLoad = nil
+
+  end
+
   def self.create(rootViewController)
     v = alloc.initWithNavigationBarClass(UINavigationBar, toolbarClass:nil)
-    v.delegate = v
-    v.pushViewController(rootViewController, animated: false) if rootViewController
+    v.rootViewControllerOnLoad = rootViewController
     v
   end
   

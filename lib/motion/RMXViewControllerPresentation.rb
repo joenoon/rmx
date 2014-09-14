@@ -2,7 +2,6 @@ module RMXViewControllerPresentation
 
   def self.included(klass)
     klass.send(:include, InstanceMethods)
-    klass.send(:attr_accessor, :viewState)
   end
 
   module FactoryMethods
@@ -13,9 +12,9 @@ module RMXViewControllerPresentation
       unless [ :origin, :view_controller, :animated, :completion ].all? { |x| opts.key?(x) }
         raise "Missing RMXViewControllerPresentation.present opts: #{opts.inspect}"
       end
-      Dispatch::Queue.main.async do
+      RACScheduler.mainThreadScheduler.schedule(-> {
         opts[:origin].presentViewController(opts[:view_controller], animated:opts[:animated], completion:opts[:completion])
-      end
+      })
     end
 
     # remove the controller from the display heirarchy, taking into account how it is
@@ -33,9 +32,9 @@ module RMXViewControllerPresentation
 
 
       if view_controller.presentingViewController
-        Dispatch::Queue.main.async do
+        RACScheduler.mainThreadScheduler.schedule(-> {
           view_controller.dismissViewControllerAnimated(animated, completion:block)
-        end
+        })
       elsif navigationController
         if index = navigationController.viewControllers.index(view_controller)
           before_index = index - 1
@@ -44,10 +43,18 @@ module RMXViewControllerPresentation
           if pop_to_controller && pop_to_controller != navigationController.viewControllers.last
             # p "pop_to_controller", pop_to_controller
             # p "navigationController.popToViewController(pop_to_controller, animated:animated)"
-            Dispatch::Queue.main.async do
-              RMX.new(navigationController).once(:done_animating, &block) if block
+            RACScheduler.mainThreadScheduler.schedule(-> {
+              if block
+                pop_to_controller.rac_signalForSelector('viewDidAppear:')
+                .timeout(2, onScheduler:RACScheduler.mainThreadScheduler)
+                .take(1)
+                .subscribeNext(->(args) {
+                  block.call
+                }, error:->(error) {
+                })
+              end
               navigationController.popToViewController(pop_to_controller, animated:animated)
-            end
+            })
           end
         end
       end
@@ -58,53 +65,52 @@ module RMXViewControllerPresentation
 
   module InstanceMethods
 
-    def triggerViewState!(animated)
-      # p "triggerViewState!", @viewState, animated
-      RMX.new(self).trigger(@viewState, animated)
+    def viewStateSignal
+      @viewStateSignal ||= begin
+        sub = RACReplaySubject.replaySubjectWithCapacity(1)
+
+        RACSignal.merge([
+          rac_signalForSelector('viewWillAppear:').map(->(v) { :viewWillAppear }.weak!),
+          rac_signalForSelector('viewDidAppear:').map(->(v) { :viewDidAppear }.weak!),
+          rac_signalForSelector('viewWillDisappear:').map(->(v) { :viewWillDisappear }.weak!),
+          rac_signalForSelector('viewDidDisappear:').map(->(v) { :viewDidDisappear }.weak!)
+        ])
+        .takeUntil(rac_willDeallocSignal)
+        .subscribeNext(->(v) {
+          sub.sendNext(v)
+        }.weak!)
+
+        rac_signalForSelector('viewWillAppear:').subscribeNext(->(tuple) { appearing(tuple.first) }.weak!)
+        rac_signalForSelector('viewDidAppear:').subscribeNext(->(tuple) { appeared(tuple.first) }.weak!)
+        rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.weak!)
+        rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { disappeared(tuple.first) }.weak!)
+
+        sub.takeUntil(rac_willDeallocSignal).subscribeOn(RACScheduler.mainThreadScheduler)
+      end
     end
 
     def whenOrIfViewState(viewState, &block)
-      if viewState == @viewState
+      viewStateSignal
+      .filter(->(v) {
+        v == viewState
+      })
+      .take(1)
+      .deliverOn(RACScheduler.mainThreadScheduler)
+      .subscribeNext(->(v) {
         block.call
-      else
-        RMX.new(self).once(viewState, &block)
-      end
+      })
     end
 
     def appearing(animated)
     end
 
-    def rmx_viewWillAppear(animated)
-      @viewState = :viewWillAppear
-      triggerViewState!(animated)
-      appearing(animated)
-    end
-
     def appeared(animated)
-    end
-
-    def rmx_viewDidAppear(animated)
-      @viewState = :viewDidAppear
-      triggerViewState!(animated)
-      appeared(animated)
     end
 
     def disappearing(animated)
     end
 
-    def rmx_viewWillDisappear(animated)
-      @viewState = :viewWillDisappear
-      triggerViewState!(animated)
-      disappearing(animated)
-    end
-
     def disappeared(animated)
-    end
-
-    def rmx_viewDidDisappear(animated)
-      @viewState = :viewDidDisappear
-      triggerViewState!(animated)
-      disappeared(animated)
     end
 
     def present(vc, animated=false, &block)
