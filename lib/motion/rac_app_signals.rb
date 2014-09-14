@@ -137,23 +137,17 @@ class RMX
   end
 
   def self.launchedAt
-    RECURSIVE_LOCK.lock
     res = @launchedAt
-    RECURSIVE_LOCK.unlock
     res
   end
 
   def self.lastResignedAt
-    RECURSIVE_LOCK.lock
     res = @lastResignedAt
-    RECURSIVE_LOCK.unlock
     res
   end
 
   def self.lastActivatedAt
-    RECURSIVE_LOCK.lock
     res = @lastActivatedAt
-    RECURSIVE_LOCK.unlock
     res
   end
 
@@ -182,9 +176,7 @@ class RMX
   end
 
   def self.rac_appSignal(name)
-    RECURSIVE_LOCK.lock
     res = @rmx_rac_appSignals[name].deliverOn(RACScheduler.mainThreadScheduler)
-    RECURSIVE_LOCK.unlock
     res
   end
 
@@ -248,18 +240,14 @@ class RMX
       if DEBUG_APP_STATE
         NSLog("*** UIApplicationDidFinishLaunchingNotification: #{v.description}")
       end
-      RECURSIVE_LOCK.lock
       @launchedAt = Time.now
-      RECURSIVE_LOCK.unlock
     })
 
     rac_appSignal(UIApplicationDidBecomeActiveNotification).subscribeNext(->(v) {
       if DEBUG_APP_STATE
         NSLog("*** UIApplicationDidBecomeActiveNotification: #{v.description}")
       end
-      RECURSIVE_LOCK.lock
       @lastActivatedAt = Time.now
-      RECURSIVE_LOCK.unlock
     })
 
     rac_appSignal(UIApplicationDidEnterBackgroundNotification).subscribeNext(->(v) {
@@ -278,9 +266,7 @@ class RMX
       if DEBUG_APP_STATE
         NSLog("*** UIApplicationWillResignActiveNotification: #{v.description}")
       end
-      RECURSIVE_LOCK.lock
       @lastResignedAt = Time.now
-      RECURSIVE_LOCK.unlock
     })
 
     rac_appSignal(UIApplicationWillTerminateNotification).subscribeNext(->(v) {

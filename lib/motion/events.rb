@@ -1,10 +1,16 @@
 class RMX
 
+  EVENT_LOCK = NSLock.new
+
   # requires ReactiveCocoa
 
   # register a callback when an event is triggered on this object.
   def on(event, opts={}, &block)
-    if object = unsafe_unretained_object and sig = rac_signal_for_event(event)
+    if object = unsafe_unretained_object
+      EVENT_LOCK.lock
+      sig = rac_signal_for_event(event)
+      EVENT_LOCK.unlock
+      return unless sig
       log("on", event, "opts", opts) if DEBUG_EVENTS
 
       s = opts[:scheduler]
@@ -69,7 +75,7 @@ class RMX
   # RMX(@model).off(:fire)            # remove all :fire events
   # RMX(@model).off                   # remove all events
   def off(event=nil)
-    RECURSIVE_LOCK.lock
+    EVENT_LOCK.lock
     if rac_signals = ivar(:rac_signals)
       if event
         if sig = rac_signals[event]
@@ -85,14 +91,14 @@ class RMX
         rac_signals.clear
       end
     end
-    RECURSIVE_LOCK.unlock
+    EVENT_LOCK.unlock
   end
 
   # trigger an event with value on this object
   def trigger(event, *values)
-    RECURSIVE_LOCK.lock
+    EVENT_LOCK.lock
     sig = rac_signal_for_event?(event)
-    RECURSIVE_LOCK.unlock
+    EVENT_LOCK.unlock
     if sig
       log("trigger", event, values, sig) if DEBUG_EVENTS
       sig.sendNext(values)

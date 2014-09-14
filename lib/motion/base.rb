@@ -1,7 +1,5 @@
 class RMX
 
-  RECURSIVE_LOCK = NSRecursiveLock.new
-
   def initialize(_object)
     @unsafe_unretained_object_holder = RMXUnsafeUnretainedHolder.new(_object)
     self

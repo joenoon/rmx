@@ -4,14 +4,6 @@ class RMX
     NSThread.currentThread.isMainThread
   end
 
-  def self.synchronized(&block)
-    res = nil
-    RECURSIVE_LOCK.lock
-    res = block.call
-    RECURSIVE_LOCK.unlock
-    res
-  end
-
   def self.safe_block(block_value=nil, notes=nil, &do_block)
     block = block_value || do_block
     weak_block_owner_holder = RMXWeakHolder.new(block.owner, notes)
@@ -94,9 +86,9 @@ class RMX
   end
 
   def self.log_dealloc(object)
-    RECURSIVE_LOCK.lock
-    $rmx_log_deallocs.addObject(object)
-    RECURSIVE_LOCK.unlock
+    Dispatch::Queue.new("rmx_log_deallocs").sync do
+      $rmx_log_deallocs.addObject(object)
+    end
     if DEBUG_DEALLOC
       me = object.rmx_object_desc
       NSLog("     -     INIT      - #{me}")
@@ -148,21 +140,24 @@ class RMX
     end
   end
 
+  IVAR_LOCK = NSLock.new
+
   def sync_ivar(*args, &block)
-    RMX.synchronized do
-      ivar(*args, &block)
-    end
+    IVAR_LOCK.lock
+    res = ivar(*args, &block)
+    IVAR_LOCK.unlock
+    res
   end
 
   def kvo_sync_ivar(*args, &block)
     res = nil
     if object = unsafe_unretained_object
       key = args[0].to_s
-      RMX.synchronized do
-        object.willChangeValueForKey(key)
-        res = ivar(*args, &block)
-        object.didChangeValueForKey(key)
-      end
+      object.willChangeValueForKey(key)
+      IVAR_LOCK.lock
+      res = ivar(*args, &block)
+      IVAR_LOCK.unlock
+      object.didChangeValueForKey(key)
     end
     res
   end
