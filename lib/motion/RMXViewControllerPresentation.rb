@@ -70,20 +70,20 @@ module RMXViewControllerPresentation
         sub = RACReplaySubject.replaySubjectWithCapacity(1)
 
         RACSignal.merge([
-          rac_signalForSelector('viewWillAppear:').map(->(v) { :viewWillAppear }.weak!),
-          rac_signalForSelector('viewDidAppear:').map(->(v) { :viewDidAppear }.weak!),
-          rac_signalForSelector('viewWillDisappear:').map(->(v) { :viewWillDisappear }.weak!),
-          rac_signalForSelector('viewDidDisappear:').map(->(v) { :viewDidDisappear }.weak!)
+          rac_signalForSelector('viewWillAppear:').map(->(v) { :viewWillAppear }.rmx_unsafe!),
+          rac_signalForSelector('viewDidAppear:').map(->(v) { :viewDidAppear }.rmx_unsafe!),
+          rac_signalForSelector('viewWillDisappear:').map(->(v) { :viewWillDisappear }.rmx_unsafe!),
+          rac_signalForSelector('viewDidDisappear:').map(->(v) { :viewDidDisappear }.rmx_unsafe!)
         ])
         .takeUntil(rac_willDeallocSignal)
         .subscribeNext(->(v) {
           sub.sendNext(v)
-        }.weak!)
+        }.rmx_unsafe!)
 
-        rac_signalForSelector('viewWillAppear:').subscribeNext(->(tuple) { appearing(tuple.first) }.weak!)
-        rac_signalForSelector('viewDidAppear:').subscribeNext(->(tuple) { appeared(tuple.first) }.weak!)
-        rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.weak!)
-        rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { disappeared(tuple.first) }.weak!)
+        rac_signalForSelector('viewWillAppear:').subscribeNext(->(tuple) { appearing(tuple.first) }.rmx_unsafe!)
+        rac_signalForSelector('viewDidAppear:').subscribeNext(->(tuple) { appeared(tuple.first) }.rmx_unsafe!)
+        rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.rmx_unsafe!)
+        rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { disappeared(tuple.first) }.rmx_unsafe!)
 
         sub.takeUntil(rac_willDeallocSignal).subscribeOn(RACScheduler.mainThreadScheduler)
       end

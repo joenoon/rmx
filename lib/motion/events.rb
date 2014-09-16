@@ -13,6 +13,8 @@ class RMX
       return unless sig
       log("on", event, "opts", opts) if DEBUG_EVENTS
 
+      arity = block.arity
+
       s = opts[:scheduler]
       if s == :async
         s = RMXRACHelper.schedulerWithHighPriority
@@ -28,7 +30,7 @@ class RMX
         arr += [ object, block.owner ]
       end
 
-      sblock = RMX.safe_block(block, "event block: #{arr.inspect}")
+      sblock = block.rmx_weak!(nil, "event block: #{arr.inspect}")
 
       sub = sig.deliverOn(s).subscribeNext(->(args) {
 
@@ -44,15 +46,12 @@ class RMX
           end
         end
 
-        unless sblock.call(*args)
-          log("killed sub because dead safe block") if DEBUG_EVENTS
-          sub.dispose
-        end
+        sblock.call(*args)
 
       })
 
       if opts[:now]
-        sig.sendNext([])
+        sig.sendNext((0...arity).to_a.map { |x| nil })
       end
 
       sub

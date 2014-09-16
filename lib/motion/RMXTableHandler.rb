@@ -64,15 +64,16 @@ class RMXTableHandler
     @animateUpdatesSignal
     .throttle(0.25)
     .deliverOn(RACScheduler.mainThreadScheduler)
-    .subscribeNext(RMX.safe_lambda do |v|
+    .subscribeNext(->(v) {
       animateUpdates
-    end)
-    rac_willDeallocSignal.subscribeCompleted(RMX.safe_lambda do
+    }.rmx_weak!(nil, "animateUpdates"))
+
+    rac_willDeallocSignal.subscribeCompleted(-> {
       if tv = tableView
         tv.dataSource = nil
         tv.delegate = nil
       end
-    end)
+    }.rmx_unsafe!)
     self
   end
 

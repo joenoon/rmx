@@ -79,7 +79,7 @@ class RMXNavigationController < UINavigationController
 
     viewStateSignal
 
-    rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { RMX.resignApplicationFirstResponder }.weak!)
+    rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { RMX.resignApplicationFirstResponder }.rmx_unsafe!)
 
     self.delegate = self
 

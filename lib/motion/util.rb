@@ -1,53 +1,89 @@
+class Proc
+
+  def rmx_weak!(fallback_return=nil, desc=nil)
+    block = RMX.safe_block(fallback_return, desc, &self)
+    RMX.block_to_lambda_if_possible(arity, &block)
+  end
+
+  def rmx_unsafe!
+    RMX.block_to_lambda_if_possible(arity, &weak!)
+  end
+
+  def rmx_strong!
+    RMX.block_to_lambda_if_possible(arity, &self)
+  end
+
+end
+
+
 class RMX
 
   def self.mainThread?
     NSThread.currentThread.isMainThread
   end
 
-  def self.safe_block(block_value=nil, notes=nil, &do_block)
-    block = block_value || do_block
-    weak_block_owner_holder = RMXWeakHolder.new(block.owner, notes)
+  def self.safe_block(fallback_return=nil, desc=nil, &block)
+    weak_block_owner_holder = RMXWeakHolder.new(block.owner)
     block.weak!
     proc do |*args|
       if wbo = weak_block_owner_holder.value
         block.call(*args)
-        true
       else
-        if DEBUG_SAFE_BLOCKS
-          NSLog("PREVENTED SAFE BLOCK, block owner: #{weak_block_owner_holder.inspect}")
-        end
-        false
+        NSLog("PREVENTED BLOCK (#{[ desc, weak_block_owner_holder.inspect ].compact.join(", ")}).  Something is holding onto this block longer than it should, and probably leaking.")
+        fallback_return
       end
     end
   end
 
-  def self.safe_lambda(block_value=nil, notes=nil, &do_block)
-    block = block_value || do_block
-    x = safe_block(block, notes)
-    case block.arity
-    when 0
-      -> { x.call }
-    when 1
-      ->(a) { x.call(a) }
-    when 2
-      ->(a,b) { x.call(a,b) }
-    when 3
-      ->(a,b,c) { x.call(a,b,c) }
-    when 4
-      ->(a,b,c,d) { x.call(a,b,c,d) }
-    when 5
-      ->(a,b,c,d,e) { x.call(a,b,c,d,e) }
+  def self.safe_lambda(fallback_return=nil, desc=nil, &block)
+    x = safe_block(fallback_return, desc, &block)
+    block_to_lambda(block.arity, &x)
+  end
+
+  def self.block_to_lambda_if_possible(arity=nil, &block)
+    arity ||= block.arity
+    if block.lambda?
+      block
+    elsif arity > -1
+      block_to_lambda(arity, &block)
     else
-      raise "unsupported arity #{block.arity}"
+      block
+    end
+  end
+
+  def self.block_to_lambda(arity=nil, &block)
+    arity ||= block.arity
+    case arity
+    when 0
+      -> { block.call }
+    when 1
+      ->(a) { block.call(a) }
+    when 2
+      ->(a,b) { block.call(a,b) }
+    when 3
+      ->(a,b,c) { block.call(a,b,c) }
+    when 4
+      ->(a,b,c,d) { block.call(a,b,c,d) }
+    when 5
+      ->(a,b,c,d,e) { block.call(a,b,c,d,e) }
+    when 6
+      ->(a,b,c,d,e,f) { block.call(a,b,c,d,e,f) }
+    when 7
+      ->(a,b,c,d,e,f,g) { block.call(a,b,c,d,e,f,g) }
+    when 8
+      ->(a,b,c,d,e,f,g,h) { block.call(a,b,c,d,e,f,g,h) }
+    when 9
+      ->(a,b,c,d,e,f,g,h,i) { block.call(a,b,c,d,e,f,g,h,i) }
+    when 10
+      ->(a,b,c,d,e,f,g,h,i,j) { block.call(a,b,c,d,e,f,g,h,i,j) }
+    else
+      raise "RMX.block_to_lambda unsupported arity #{block.arity}"
     end.weak!
   end
 
   def self.after_animations(&block)
     CATransaction.begin
-    sblock = safe_block(block, "after_animations")
-    CATransaction.setCompletionBlock(lambda do
-      sblock.call
-    end.weak!)
+    CATransaction.setCompletionBlock(block.rmx_weak!(nil, "after_animations"))
     CATransaction.commit
   end
 
