@@ -50,20 +50,12 @@ class RMX
 
       })
 
-      if opts[:now]
-        sig.sendNext((0...arity).to_a.map { |x| nil })
-      end
-
       sub
     end
   end
   
   def log(*args)
     p *args
-  end
-
-  def now_and_on(event, opts={}, &block)
-    on(event, opts.merge({ :now => true }), &block)
   end
 
   # register a callback when an event is triggered on this object and remove it after it fires once
