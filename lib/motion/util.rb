@@ -121,11 +121,21 @@ class RMX
     $rmx_log_deallocs = NSHashTable.weakObjectsHashTable
   end
 
-  def self.log_dealloc(object)
-    Dispatch::Queue.new("rmx_log_deallocs").sync do
+  LOG_DEALLOC_QUEUE = Dispatch::Queue.new("rmx_log_deallocs")
+
+  def self.logged_deallocs
+    res = nil
+    LOG_DEALLOC_QUEUE.sync do
+      res = $rmx_log_deallocs.allObjects
+    end
+    res
+  end
+
+  def self.log_dealloc(object, verbose=false)
+    LOG_DEALLOC_QUEUE.sync do
       $rmx_log_deallocs.addObject(object)
     end
-    if DEBUG_DEALLOC
+    if verbose || DEBUG_DEALLOC
       me = object.rmx_object_desc
       NSLog("     -     INIT      - #{me}")
       object.rac_willDeallocSignal.subscribeCompleted(-> {
