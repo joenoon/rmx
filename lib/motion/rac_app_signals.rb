@@ -35,7 +35,13 @@ class RMX
   end
 
   # Posted immediately after the app finishes launching.
-  # If the app was launched as a result of in remote notification targeted at it or because another app opened a URL resource claimed the posting app (the notification object), this notification contains a userInfo dictionary. You can access the contents of the dictionary using the UIApplicationLaunchOptionsURLKey and UIApplicationLaunchOptionsSourceApplicationKey constants (for URLs), the UIApplicationLaunchOptionsRemoteNotificationKey constant (for remote notifications), and the UIApplicationLaunchOptionsLocalNotificationKey constant (for local notifications). If the notification was posted for a normal app launch, there is no userInfo dictionary.
+  # If the app was launched as a result of in remote notification targeted at it or because another app opened a URL
+  # resource claimed the posting app (the notification object), this notification contains a userInfo dictionary.
+  # You can access the contents of the dictionary using the UIApplicationLaunchOptionsURLKey and
+  # UIApplicationLaunchOptionsSourceApplicationKey constants (for URLs), the
+  # UIApplicationLaunchOptionsRemoteNotificationKey constant (for remote notifications), and the
+  # UIApplicationLaunchOptionsLocalNotificationKey constant (for local notifications). If the notification was
+  # posted for a normal app launch, there is no userInfo dictionary.
   def self.rac_appDidFinishLaunchingNotification
     rac_appSignal(UIApplicationDidFinishLaunchingNotification)
   end
