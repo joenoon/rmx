@@ -67,7 +67,7 @@ class RMXEventManager
     @calendar = NSCalendar.autoupdatingCurrentCalendar
     @store = EKEventStore.new
     @events = []
-    @accessible = false
+    @accessible = EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent) == EKAuthorizationStatusAuthorized
     @sources = []
     @selectedCalendars = NSMutableSet.new
 
