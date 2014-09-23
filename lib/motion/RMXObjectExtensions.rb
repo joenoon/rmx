@@ -14,5 +14,10 @@ module RMXObjectExtensions
     Helper.rmx_object_desc(self)
   end
 
+  def rmx_log_dealloc(verbose=false)
+    ::RMX.log_dealloc(self, verbose)
+    self
+  end
+
 end
 Object.send(:include, RMXObjectExtensions)
