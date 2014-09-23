@@ -8,8 +8,12 @@ class RMXWeakHolder
     self
   end
 
-  def value
-    @holder.anyObject
+  def value(&block)
+    v = @holder.anyObject
+    if v && !block.nil?
+      block.call(v)
+    end
+    v
   end
 
   def value=(_value)
@@ -28,10 +32,10 @@ class RMXWeakHolder
 
   def inspect
     if val = value
-      "(weak)#{@value_desc}<#{@notes}>"
+      "(weak)#{@value_desc}"
     else
-      "(deallocated)#{@value_desc}<#{@notes}>"
-    end
+      "(deallocated)#{@value_desc}"
+    end + (@notes ? "(#{@notes})" : "")
   end
 
 end
