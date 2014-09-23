@@ -3,6 +3,12 @@ RMXApplicationDidBecomeActiveFromForeground = "RMXApplicationDidBecomeActiveFrom
 
 class RMX
 
+  def racObserve(target, keypath)
+    if object = unsafe_unretained_object
+      target.rac_valuesForKeyPath(keypath, observer:object)
+    end
+  end
+
   # App Flow notes:
   #
   # Launch:
