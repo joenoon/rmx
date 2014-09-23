@@ -25,7 +25,6 @@ Motion::Project::App.setup do |app|
     RMXStrongToWeakHash
     RMXSynchronizedStrongToWeakHash
     RMXSetAttributes
-    RMXConcurrentOperation
     RMXEventManager
     RMXViewControllerPresentation
     RMXKeyboardHelpers
