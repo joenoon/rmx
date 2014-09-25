@@ -57,7 +57,3 @@ class RMX
   NSNotificationCenter.defaultCenter.addObserver(self, selector:'keyboardWillChangeFrame:', name:UIKeyboardWillChangeFrameNotification, object:nil)
 
 end
-
-def RMX(_object)
-  RMX.new(_object)
-end

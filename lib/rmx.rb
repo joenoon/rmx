@@ -14,8 +14,11 @@ Motion::Project::App.setup do |app|
     layout
     util
     accessors
+    instance_variables
+    dealloc_logging
     rac_app_signals
     ui
+    rmx_shortcut
     RACSignal+RMX
     RMXCommonMethods
     RMXLongTask
