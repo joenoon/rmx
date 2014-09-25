@@ -184,12 +184,14 @@ class RMXEventManager
       new_selected.setSet(stored)
     end
 
-    @store.sources.each do |source|
-      calendars = source.calendarsForEntityType(EKEntityTypeEvent)
-      if calendars.count > 0
-        new_sources.addObject(source)
-        unless stored
-          new_selected.addObjectsFromArray(calendars.allObjects.map(&:calendarIdentifier))
+    if store_sources = @store.sources
+      store_sources.each do |source|
+        calendars = source.calendarsForEntityType(EKEntityTypeEvent)
+        if calendars.count > 0
+          new_sources.addObject(source)
+          unless stored
+            new_selected.addObjectsFromArray(calendars.allObjects.map(&:calendarIdentifier))
+          end
         end
       end
     end
