@@ -7,6 +7,7 @@ end
 Motion::Project::App.setup do |app|
   app.vendor_project(File.expand_path('../../ext', __FILE__), :static, :cflags => "-fobjc-arc -ObjC -I#{File.join(Dir.pwd, "vendor/Pods/ReactiveCocoa/ReactiveCocoaFramework/ReactiveCocoa")}")
   %w(
+    Proc+RMX
     RMXObjectExtensions
     base
     env
@@ -14,28 +15,22 @@ Motion::Project::App.setup do |app|
     util
     accessors
     rac_app_signals
-    events
     ui
     RACSignal+RMX
     RMXCommonMethods
     RMXLongTask
     RMXWeakHolder
     RMXUnsafeUnretainedHolder
-    RMXWeakToStrongHash
-    RMXStrongToWeakHash
-    RMXSynchronizedStrongToWeakHash
     RMXSetAttributes
     RMXEventManager
     RMXViewControllerPresentation
     RMXKeyboardHelpers
-    RMXHideTableViewHeader
     RMXNavigationController
     RMXTableViewController
     RMXViewController
     RMXSegmentedController
     RMXInputAccessoryViewResponder
     RMXView
-    RMXAutoLayoutLabel
     RMXAutoLayoutScrollView
     RMXTableViewCell
     RMXTableViewHeaderFooterView
