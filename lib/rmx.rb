@@ -35,7 +35,6 @@ Motion::Project::App.setup do |app|
     RMXSegmentedController
     RMXInputAccessoryViewResponder
     RMXView
-    RMXActionSheet
     RMXAutoLayoutLabel
     RMXAutoLayoutScrollView
     RMXTableViewCell
