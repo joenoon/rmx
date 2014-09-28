@@ -43,7 +43,7 @@ class RMXTableHandler
 
   def self.forTable(tableView, delegate:delegate)
     x = new
-    if tableView.respondsToSelector('setLayoutMargins:')
+    if RMX::IOS8_COMPAT
       tableView.layoutMargins = UIEdgeInsetsZero
     end
     x.tableView = tableView

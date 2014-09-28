@@ -7,7 +7,7 @@ class RMXTableViewCell < UITableViewCell
   def initWithStyle(style, reuseIdentifier:reuseIdentifier)
     reuseIdentifier = reuseIdentifier.to_s
     s = super(style, reuseIdentifier)
-    if respondsToSelector('setLayoutMargins:')
+    if RMX::IOS8_COMPAT
       self.layoutMargins = UIEdgeInsetsZero
     end
     @innerContentView = RMXView.new

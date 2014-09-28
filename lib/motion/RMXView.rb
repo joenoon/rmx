@@ -11,6 +11,9 @@ class RMXView < UIView
 
   def init
     s = super
+    if RMX::IOS8_COMPAT
+      self.layoutMargins = UIEdgeInsetsZero
+    end
     prepare
     setUserInteractionEnabled(false)
     setup
@@ -37,7 +40,7 @@ class RMXView < UIView
     s
   end
 
-  def requiresConstraintBasedLayout
+  def self.requiresConstraintBasedLayout
     true
   end
 
