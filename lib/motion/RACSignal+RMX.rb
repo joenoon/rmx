@@ -9,16 +9,3 @@ class RACSignal
   end
 
 end
-
-
-class RACStream
-
-  def rmxLogNext(name)
-    if RMX::Env["RAC_DEBUG_SIGNAL_NAMES"]
-      setNameWithFormat(name).logNext
-    else
-      self
-    end
-  end
-
-end
