@@ -11,8 +11,8 @@ Motion::Project::App.setup do |app|
     RMXObjectExtensions
     base
     env
-    layout
     util
+    layout
     accessors
     instance_variables
     dealloc_logging
@@ -28,6 +28,8 @@ Motion::Project::App.setup do |app|
     RMXEventManager
     RMXViewControllerPresentation
     RMXKeyboardHelpers
+    UIResponder+RMX
+    RMXNavigationBar
     RMXNavigationController
     RMXTableViewController
     RMXViewController

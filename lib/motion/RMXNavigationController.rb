@@ -73,6 +73,9 @@ class RMXNavigationController < UINavigationController
 
   def viewDidLoad
     RMX.log_dealloc(self)
+
+    navigationBar.shouldOnlyReceiveTouchEventsInsideNavigationBar = true
+    
     @queued_ops = []
     @transitionSubject = RACReplaySubject.replaySubjectWithCapacity(1)
     @transitionSignal = @transitionSubject.subscribeOn(RACScheduler.mainThreadScheduler)
@@ -90,7 +93,7 @@ class RMXNavigationController < UINavigationController
   end
 
   def self.create(rootViewController)
-    v = alloc.initWithNavigationBarClass(UINavigationBar, toolbarClass:nil)
+    v = alloc.initWithNavigationBarClass(RMXNavigationBar, toolbarClass:nil)
     v.rootViewControllerOnLoad = rootViewController
     v
   end
