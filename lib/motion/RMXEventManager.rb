@@ -81,7 +81,7 @@ class RMXEventManager
     ])
     .bufferWithTime(0.5, onScheduler:RACScheduler.mainThreadScheduler)
 
-    @eventsSignal = RMX(self).racObserve(self, "events")
+    @eventsSignal = RMX(self).racObserve("events")
   end
 
   def self.shared
