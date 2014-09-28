@@ -1,5 +1,7 @@
 class RMX
 
+  IOS8_COMPAT = UIView.instance_methods.include?(:"setLayoutMargins:")
+
   def self.mainThread?
     NSThread.currentThread.isMainThread
   end

@@ -2,17 +2,27 @@ class RMX
   class Layout
 
     ATTRIBUTE_LOOKUP = {
-      "left" => NSLayoutAttributeLeft,
-      "right" => NSLayoutAttributeRight,
-      "top" => NSLayoutAttributeTop,
-      "bottom" => NSLayoutAttributeBottom,
-      "leading" => NSLayoutAttributeLeading,
-      "trailing" => NSLayoutAttributeTrailing,
       "width" => NSLayoutAttributeWidth,
       "height" => NSLayoutAttributeHeight,
+      "left" => NSLayoutAttributeLeft,
+      "leftMargin" => IOS8_COMPAT ? NSLayoutAttributeLeftMargin : NSLayoutAttributeLeft,
+      "right" => NSLayoutAttributeRight,
+      "rightMargin" => IOS8_COMPAT ? NSLayoutAttributeRightMargin : NSLayoutAttributeRight,
+      "top" => NSLayoutAttributeTop,
+      "topMargin" => IOS8_COMPAT ? NSLayoutAttributeTopMargin : NSLayoutAttributeTop,
+      "bottom" => NSLayoutAttributeBottom,
+      "bottomMargin" => IOS8_COMPAT ? NSLayoutAttributeBottomMargin : NSLayoutAttributeBottom,
+      "leading" => NSLayoutAttributeLeading,
+      "leadingMargin" => IOS8_COMPAT ? NSLayoutAttributeLeadingMargin : NSLayoutAttributeLeading,
+      "trailing" => NSLayoutAttributeTrailing,
+      "trailingMargin" => IOS8_COMPAT ? NSLayoutAttributeTrailingMargin : NSLayoutAttributeTrailing,
       "centerX" => NSLayoutAttributeCenterX,
+      "centerXWithinMargins" => IOS8_COMPAT ? NSLayoutAttributeCenterXWithinMargins : NSLayoutAttributeCenterX,
       "centerY" => NSLayoutAttributeCenterY,
+      "centerYWithinMargins" => IOS8_COMPAT ? NSLayoutAttributeCenterYWithinMargins : NSLayoutAttributeCenterY,
       "baseline" => NSLayoutAttributeBaseline,
+      "firstBaseline" => IOS8_COMPAT ? NSLayoutAttributeFirstBaseline : NSLayoutAttributeBaseline,
+      "lastBaseline" => IOS8_COMPAT ? NSLayoutAttributeLastBaseline : NSLayoutAttributeBaseline,
       nil => NSLayoutAttributeNotAnAttribute
     }
 
@@ -82,26 +92,6 @@ class RMX
         block.call(self)
         block = nil
       end
-    end
-
-    # def dealloc
-    #   p " - dealloc! (queue: #{Dispatch::Queue.current.description})"
-    #   super
-    # end
-
-    # reopens the RMX::Layout instance for additional processing, ex:
-    #   @layout.reopen do |layout|
-    #     ...
-    #   end
-    # note: you would need to store your instance somewhere on creation to be able to reopen it later, ex:
-    #   @layout = RMX::Layout.new do |layout|
-    #     ...
-    #   end
-    def reopen
-      if block_given?
-        yield self
-      end
-      self
     end
 
     def clear!
