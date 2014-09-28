@@ -3,31 +3,6 @@ RMXApplicationDidBecomeActiveFromForeground = "RMXApplicationDidBecomeActiveFrom
 
 class RMX
 
-  # Our version of the RACObserve macro:
-  #
-  # Simple version:
-  #
-  #   RMX(target).racObserve(keypath)
-  #   i.e. RMX(self).racObserve("items")
-  #
-  # Separate observer and target version (when you want to observe a keypath
-  # on an object other than self):
-  #
-  #   RMX(observer).racObserve(target, keypath)
-  #   i.e. RMX(self).racObserve(other_object, "items")
-  #
-  # Which to use depends on what needs to be considered for deallocation.
-  # For more information, check rac's `rac_valuesForKeyPath`.
-  #
-  def racObserve(*args)
-    if object = unsafe_unretained_object
-      keypath = args.pop
-      target = args.pop || object
-      observer = target == object ? nil : object
-      target.rac_valuesForKeyPath(keypath, observer:observer)
-    end
-  end
-
   # App Flow notes:
   #
   # Launch:
