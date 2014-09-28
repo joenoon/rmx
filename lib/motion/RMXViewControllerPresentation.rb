@@ -18,9 +18,7 @@ module RMXViewControllerPresentation
     end
 
     # remove the controller from the display heirarchy, taking into account how it is
-    # currently presented.  avoid nesting animations and corrupting the UI by using
-    # whenOrIfViewState and executing on the main thread async to ensure it is not yanked out of the
-    # UI during existing animations
+    # currently presented.
     def dismiss(opts)
       unless [ :view_controller, :animated, :completion ].all? { |x| opts.key?(x) }
         raise "Missing RMXViewControllerPresentation.dismiss opts: #{opts.inspect}"
@@ -70,10 +68,10 @@ module RMXViewControllerPresentation
         sub = RACReplaySubject.replaySubjectWithCapacity(1)
 
         RACSignal.merge([
-          rac_signalForSelector('viewWillAppear:').map(->(v) { :viewWillAppear }.rmx_unsafe!),
-          rac_signalForSelector('viewDidAppear:').map(->(v) { :viewDidAppear }.rmx_unsafe!),
-          rac_signalForSelector('viewWillDisappear:').map(->(v) { :viewWillDisappear }.rmx_unsafe!),
-          rac_signalForSelector('viewDidDisappear:').map(->(v) { :viewDidDisappear }.rmx_unsafe!)
+          rac_signalForSelector('viewWillAppear:').map(->(tuple) { [ :viewWillAppear, tuple.first ] }.rmx_unsafe!),
+          rac_signalForSelector('viewDidAppear:').map(->(tuple) { [ :viewDidAppear, tuple.first ] }.rmx_unsafe!),
+          rac_signalForSelector('viewWillDisappear:').map(->(tuple) { [ :viewWillDisappear, tuple.first ] }.rmx_unsafe!),
+          rac_signalForSelector('viewDidDisappear:').map(->(tuple) { [ :viewDidDisappear, tuple.first ] }.rmx_unsafe!)
         ])
         .takeUntil(rac_willDeallocSignal)
         .subscribeNext(->(v) {
@@ -85,17 +83,20 @@ module RMXViewControllerPresentation
         rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.rmx_unsafe!)
         rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { disappeared(tuple.first) }.rmx_unsafe!)
 
-        sub.takeUntil(rac_willDeallocSignal).subscribeOn(RACScheduler.mainThreadScheduler)
+        sub.takeUntil(rac_willDeallocSignal).subscribeOn(RACScheduler.mainThreadScheduler).deliverOn(RACScheduler.mainThreadScheduler)
       end
     end
 
-    def whenOrIfViewState(viewState, &block)
+    def viewStateFilteredSignal(state)
       viewStateSignal
-      .filter(->(v) {
-        v == viewState
-      })
+      .filter(->((_state, animated)) {
+        state == _state
+      }.rmx_weak!)
+    end
+
+    def whenOrIfViewState(viewState, &block)
+      viewStateFilteredSignal(viewState)
       .take(1)
-      .deliverOn(RACScheduler.mainThreadScheduler)
       .subscribeNext(->(v) {
         block.call
       })
