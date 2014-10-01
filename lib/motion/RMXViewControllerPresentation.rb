@@ -83,7 +83,7 @@ module RMXViewControllerPresentation
         rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.rmx_unsafe!)
         rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { disappeared(tuple.first) }.rmx_unsafe!)
 
-        sub.takeUntil(rac_willDeallocSignal).subscribeOn(RACScheduler.mainThreadScheduler).deliverOn(RACScheduler.mainThreadScheduler)
+        sub.subscribeOn(RACScheduler.mainThreadScheduler).deliverOn(RACScheduler.mainThreadScheduler).takeUntil(rac_willDeallocSignal)
       end
     end
 
