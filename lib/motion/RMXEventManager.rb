@@ -142,11 +142,13 @@ class RMXEventManager
 
   def selectedCalendarObjects
     RMX.assert_main_thread!
-    calendars = @store.calendarsForEntityType(EKEntityTypeEvent).select do |calendarObject|
-      @selectedCalendars.containsObject(calendarObject.calendarIdentifier)
-    end
     set = NSMutableSet.new
-    set.addObjectsFromArray(calendars)
+    if accessible
+      calendars = @store.calendarsForEntityType(EKEntityTypeEvent).select do |calendarObject|
+        @selectedCalendars.containsObject(calendarObject.calendarIdentifier)
+      end
+      set.addObjectsFromArray(calendars)
+    end
     set
   end
 
