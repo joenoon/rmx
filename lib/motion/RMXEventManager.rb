@@ -24,9 +24,10 @@
 #
 # `disableRefresh` will stop listening for events that would trigger a refresh
 #
-# `promptForAccess` should be called when you are comfortable with displaying the permissions alert
-# to obtain access to calendars.  If access is already granted, this does nothing. Until
-# access is granted, `events` will be an empty array.
+# `promptForAccess` or `accessSignal` should be called when you are comfortable with displaying
+# the permissions alert to obtain access to calendars.  If access is already granted, this does
+# nothing. Until access is granted, `events` will be an empty array. `promptForAccess` is
+# fire-and-forget, while `accessSignal` needs to be subscribed to before it will do anything.
 #
 # You will likely want to set things up like this:
 #
@@ -105,26 +106,42 @@ class RMXEventManager
   end
 
   def promptForAccess
-    if EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent) != EKAuthorizationStatusAuthorized
-      @store.requestAccessToEntityType(EKEntityTypeEvent, completion:->(granted,error) {
-        RACScheduler.mainThreadScheduler.schedule(-> {
-          self.accessible = granted
-          if accessible
-            self.events = []
-            @store.reset
+    accessSignal.subscribeCompleted(-> {})
+  end
+
+  def accessSignal
+    RACSignal.createSignal(->(subscriber) {
+      if EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent) == EKAuthorizationStatusAuthorized
+        subscriber.sendNext(true)
+        subscriber.sendCompleted
+      else
+        @store.requestAccessToEntityType(EKEntityTypeEvent, completion:->(granted, error) {
+          RACScheduler.mainThreadScheduler.schedule(-> {
+            self.accessible = granted
+            resetStoredSelectedCalendars
             refresh
-          end
+            subscriber.sendNext(granted)
+            subscriber.sendCompleted
+          })
         })
-      })
-    end
+      end
+      nil
+    }).subscribeOn(RACScheduler.mainThreadScheduler).deliverOn(RACScheduler.mainThreadScheduler)
   end
 
   def refresh
-    resetSources
-    loadEvents
+    RMX.assert_main_thread!
+    NSLog("[#{className}] refresh")
+    if accessible
+      resetSources
+      loadEvents
+    else
+      self.events = []
+    end
   end
 
   def selectedCalendarObjects
+    RMX.assert_main_thread!
     calendars = @store.calendarsForEntityType(EKEntityTypeEvent).select do |calendarObject|
       @selectedCalendars.containsObject(calendarObject.calendarIdentifier)
     end
@@ -134,6 +151,7 @@ class RMXEventManager
   end
 
   def selectedCalendarObjects=(calendarsSet)
+    RMX.assert_main_thread!
     new_selected = NSMutableSet.new
     new_selected.addObjectsFromArray(calendarsSet.allObjects.map(&:calendarIdentifier))
     self.selectedCalendars = new_selected
@@ -142,6 +160,7 @@ class RMXEventManager
   end
 
   def newCalendarChooser
+    RMX.assert_main_thread!
     controller = EKCalendarChooser.alloc.initWithSelectionStyle(EKCalendarChooserSelectionStyleMultiple, displayStyle:EKCalendarChooserDisplayAllCalendars, entityType:EKEntityTypeEvent, eventStore:PZOEventManager.shared.store)
     controller.hidesBottomBarWhenPushed = true
     controller.delegate = self
@@ -178,13 +197,18 @@ class RMXEventManager
   private
 
   def resetSources
+    RMX.assert_main_thread!
     new_sources = []
     new_selected = NSMutableSet.new
-    if stored = getStoredSelectedCalendars
-      new_selected.setSet(stored)
-    end
 
-    if store_sources = @store.sources
+    @store.reset
+    @store.refreshSourcesIfNecessary
+    store_sources = @store.sources
+
+    if store_sources
+      if stored = getStoredSelectedCalendars
+        new_selected.setSet(stored)
+      end
       store_sources.each do |source|
         calendars = source.calendarsForEntityType(EKEntityTypeEvent)
         if calendars.count > 0
@@ -201,7 +225,14 @@ class RMXEventManager
     storeSelectedCalendars
   end
 
+  def resetStoredSelectedCalendars
+    RMX.assert_main_thread!
+    NSUserDefaults.standardUserDefaults.removeObjectForKey(selectedCalendarsKey)
+    NSUserDefaults.standardUserDefaults.synchronize
+  end
+
   def getStoredSelectedCalendars
+    RMX.assert_main_thread!
     if data = NSUserDefaults.standardUserDefaults.objectForKey(selectedCalendarsKey)
       if existing = NSKeyedUnarchiver.unarchiveObjectWithData(data) and existing.is_a?(NSSet)
         existing
@@ -210,6 +241,7 @@ class RMXEventManager
   end
 
   def storeSelectedCalendars
+    RMX.assert_main_thread!
     if @selectedCalendars
       NSUserDefaults.standardUserDefaults.setObject(NSKeyedArchiver.archivedDataWithRootObject(@selectedCalendars), forKey:selectedCalendarsKey)
       NSUserDefaults.standardUserDefaults.synchronize
@@ -217,6 +249,7 @@ class RMXEventManager
   end
 
   def loadEvents
+    RMX.assert_main_thread!
     _loadEvents
   end
 
