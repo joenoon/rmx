@@ -20,7 +20,7 @@
 # `eventsSignal` is a rac property observer on `events`
 #
 # `enableRefresh` will start listening and buffering the following events 0.5s:
-#   instantly when called, app launch, returning from background, event store changes
+#   app launch, returning from background, event store changes
 #
 # `disableRefresh` will stop listening for events that would trigger a refresh
 #
@@ -45,7 +45,24 @@
 #
 class RMXEventManager
 
-  attr_accessor :accessible, :events, :sources, :selectedCalendars, :calendar, :store
+  # for logging status changes
+  STATUSES = {
+    EKAuthorizationStatusNotDetermined => "EKAuthorizationStatusNotDetermined",
+    EKAuthorizationStatusRestricted => "EKAuthorizationStatusRestricted",
+    EKAuthorizationStatusDenied => "EKAuthorizationStatusDenied",
+    EKAuthorizationStatusAuthorized => "EKAuthorizationStatusAuthorized",
+    nil => "Not Set"
+  }
+
+  # the current EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent)
+  attr_accessor :status
+
+  # a bool based on `status`, true if EKAuthorizationStatusAuthorized, otherwise false
+  attr_accessor :granted
+
+  attr_accessor :events
+
+  attr_accessor :sources, :selectedCalendars, :calendar, :store
 
   attr_reader :refreshSignal, :eventsSignal, :storeChangedSignal
 
@@ -68,14 +85,16 @@ class RMXEventManager
     @calendar = NSCalendar.autoupdatingCurrentCalendar
     @store = EKEventStore.new
     @events = []
-    @accessible = EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent) == EKAuthorizationStatusAuthorized
+
+    @status = _status
+    @granted = _authorized?
+
     @sources = []
     @selectedCalendars = NSMutableSet.new
 
     @storeChangedSignal = NSNotificationCenter.defaultCenter.rac_addObserverForName(EKEventStoreChangedNotification, object:@store).takeUntil(rac_willDeallocSignal)
 
     @refreshSignal = RACSignal.merge([
-      RACSignal.return(true),
       RMX.rac_appDidFinishLaunchingNotification,
       RMX.rac_appDidBecomeActiveFromBackground,
       @storeChangedSignal
@@ -83,6 +102,14 @@ class RMXEventManager
     .bufferWithTime(0.5, onScheduler:RACScheduler.mainThreadScheduler)
 
     @eventsSignal = RMX(self).racObserve("events")
+
+    # log status changes
+    RMX(self).racObserve("status")
+    .distinctUntilChanged
+    .subscribeNext(->(s) {
+      NSLog("[#{className}] status=#{STATUSES[s]}")
+    }.rmx_weak!)
+
   end
 
   def self.shared
@@ -111,16 +138,15 @@ class RMXEventManager
 
   def accessSignal
     RACSignal.createSignal(->(subscriber) {
-      if EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent) == EKAuthorizationStatusAuthorized
+      if _authorized?
         subscriber.sendNext(true)
         subscriber.sendCompleted
       else
-        @store.requestAccessToEntityType(EKEntityTypeEvent, completion:->(granted, error) {
+        @store.requestAccessToEntityType(EKEntityTypeEvent, completion:->(_granted, _error) {
           RACScheduler.mainThreadScheduler.schedule(-> {
-            self.accessible = granted
             resetStoredSelectedCalendars
             refresh
-            subscriber.sendNext(granted)
+            subscriber.sendNext(_authorized?)
             subscriber.sendCompleted
           })
         })
@@ -131,8 +157,10 @@ class RMXEventManager
 
   def refresh
     RMX.assert_main_thread!
-    NSLog("[#{className}] refresh")
-    if accessible
+    self.status = _status
+    self.granted = _authorized?
+    if granted
+      NSLog("[#{className}] refresh")
       resetSources
       loadEvents
     else
@@ -143,7 +171,7 @@ class RMXEventManager
   def selectedCalendarObjects
     RMX.assert_main_thread!
     set = NSMutableSet.new
-    if accessible
+    if granted
       calendars = @store.calendarsForEntityType(EKEntityTypeEvent).select do |calendarObject|
         @selectedCalendars.containsObject(calendarObject.calendarIdentifier)
       end
@@ -198,6 +226,14 @@ class RMXEventManager
 
   private
 
+  def _authorized?
+    _status == EKAuthorizationStatusAuthorized
+  end
+
+  def _status
+    EKEventStore.authorizationStatusForEntityType(EKEntityTypeEvent)
+  end
+
   def resetSources
     RMX.assert_main_thread!
     new_sources = []
@@ -229,6 +265,7 @@ class RMXEventManager
 
   def resetStoredSelectedCalendars
     RMX.assert_main_thread!
+    NSLog("[#{className}] resetStoredSelectedCalendars")
     NSUserDefaults.standardUserDefaults.removeObjectForKey(selectedCalendarsKey)
     NSUserDefaults.standardUserDefaults.synchronize
   end
