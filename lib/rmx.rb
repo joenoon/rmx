@@ -22,7 +22,6 @@ Motion::Project::App.setup do |app|
     ui
     rmx_shortcut
     RACStream+RMX
-    RACSignal+RMX
     UIView+RMX
     RMXCommonMethods
     RMXLongTask
