@@ -108,7 +108,7 @@ class RMXEventManager
     .distinctUntilChanged
     .subscribeNext(->(s) {
       NSLog("[#{className}] status=#{STATUSES[s]}")
-    }.rmx_weak!)
+    }.rmx_unsafe!)
 
   end
 
@@ -122,7 +122,7 @@ class RMXEventManager
     .takeUntil(rac_willDeallocSignal)
     .subscribeNext(->(x) {
       refresh
-    }.rmx_weak!)
+    }.rmx_unsafe!)
   end
 
   def disableRefresh

@@ -91,7 +91,7 @@ module RMXViewControllerPresentation
       viewStateSignal
       .filter(->((_state, animated)) {
         state == _state
-      }.rmx_weak!)
+      }.rmx_unsafe!)
     end
 
     def whenOrIfViewState(viewState, &block)
