@@ -62,11 +62,12 @@ class RMXTableHandler
     @allowRefreshHeights = false
     @animateUpdatesSignal = RACSubject.subject
     @animateUpdatesSignal
+    .takeUntil(rac_willDeallocSignal)
     .throttle(0.25)
     .deliverOn(RACScheduler.mainThreadScheduler)
     .subscribeNext(->(v) {
       animateUpdates
-    }.rmx_weak!(nil, "animateUpdates"))
+    }.rmx_unsafe!)
 
     rac_willDeallocSignal.subscribeCompleted(-> {
       if tv = tableView
@@ -78,12 +79,14 @@ class RMXTableHandler
   end
 
   def animateUpdates
-    RMX.after_animations do
+    CATransaction.begin
+    CATransaction.setCompletionBlock(-> {
       if tv = tableView and tv.superview
         tv.beginUpdates
         tv.endUpdates
       end
-    end
+    })
+    CATransaction.commit
   end
 
   def reloadData

@@ -12,12 +12,6 @@ class RMX
     raise "Expected main thread. #{Dispatch::Queue.current.description}" unless mainThread?
   end
 
-  def self.after_animations(&block)
-    CATransaction.begin
-    CATransaction.setCompletionBlock(block.rmx_weak!(nil, "after_animations"))
-    CATransaction.commit
-  end
-
   def own_methods
     if object = unsafe_unretained_object
       (object.methods - (object.superclass.methods)).sort
