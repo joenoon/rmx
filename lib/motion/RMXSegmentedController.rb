@@ -8,7 +8,7 @@ class RMXSegmentedController < RMXViewController
     @control.addTarget(self, action:'control_change:', forControlEvents:UIControlEventValueChanged)
     rac_willDeallocSignal.subscribeCompleted(-> {
       cleanup_active
-    }.rmx_unsafe!)
+    }.weak!)
   end
 
   def loaded

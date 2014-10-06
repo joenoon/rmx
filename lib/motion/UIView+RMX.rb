@@ -11,8 +11,8 @@ class UIView
       gesture.rac_gestureSignal.takeUntil(rac_willDeallocSignal).subscribe(subscriber)
       RACDisposable.disposableWithBlock(-> {
         removeGestureRecognizer(gesture)
-      }.rmx_unsafe!)
-    }.rmx_unsafe!).subscribeOn(RACScheduler.mainThreadScheduler)
+      }.weak!)
+    }.weak!).subscribeOn(RACScheduler.mainThreadScheduler)
   end
 
   def rmx_tapSignal(enableInteraction=true)

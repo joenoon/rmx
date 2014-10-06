@@ -33,7 +33,7 @@ class RACStream
   #   })
   #
   def rmx_expandTuple
-    map(->(tuple) { tuple.allObjects }.rmx_unsafe!)
+    map(->(tuple) { tuple.allObjects }.weak!)
   end
 
 end

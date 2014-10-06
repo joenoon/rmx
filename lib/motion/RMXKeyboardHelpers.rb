@@ -26,7 +26,7 @@ module RMXKeyboardHelpers
     .takeUntil(rac_willDeallocSignal)
     .subscribeNext(->(notification) {
       keyboardChangedInternal(notification)
-    }.rmx_unsafe!)
+    }.weak!)
   end
 
   # listens for the rmxKeyboardChanged notification and extracts the userInfo to call a friendlier method

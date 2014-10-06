@@ -68,20 +68,20 @@ module RMXViewControllerPresentation
         sub = RACReplaySubject.replaySubjectWithCapacity(1)
 
         RACSignal.merge([
-          rac_signalForSelector('viewWillAppear:').map(->(tuple) { [ :viewWillAppear, tuple.first ] }.rmx_unsafe!),
-          rac_signalForSelector('viewDidAppear:').map(->(tuple) { [ :viewDidAppear, tuple.first ] }.rmx_unsafe!),
-          rac_signalForSelector('viewWillDisappear:').map(->(tuple) { [ :viewWillDisappear, tuple.first ] }.rmx_unsafe!),
-          rac_signalForSelector('viewDidDisappear:').map(->(tuple) { [ :viewDidDisappear, tuple.first ] }.rmx_unsafe!)
+          rac_signalForSelector('viewWillAppear:').map(->(tuple) { [ :viewWillAppear, tuple.first ] }.weak!),
+          rac_signalForSelector('viewDidAppear:').map(->(tuple) { [ :viewDidAppear, tuple.first ] }.weak!),
+          rac_signalForSelector('viewWillDisappear:').map(->(tuple) { [ :viewWillDisappear, tuple.first ] }.weak!),
+          rac_signalForSelector('viewDidDisappear:').map(->(tuple) { [ :viewDidDisappear, tuple.first ] }.weak!)
         ])
         .takeUntil(rac_willDeallocSignal)
         .subscribeNext(->(v) {
           sub.sendNext(v)
-        }.rmx_unsafe!)
+        }.weak!)
 
-        rac_signalForSelector('viewWillAppear:').subscribeNext(->(tuple) { appearing(tuple.first) }.rmx_unsafe!)
-        rac_signalForSelector('viewDidAppear:').subscribeNext(->(tuple) { appeared(tuple.first) }.rmx_unsafe!)
-        rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.rmx_unsafe!)
-        rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { disappeared(tuple.first) }.rmx_unsafe!)
+        rac_signalForSelector('viewWillAppear:').subscribeNext(->(tuple) { appearing(tuple.first) }.weak!)
+        rac_signalForSelector('viewDidAppear:').subscribeNext(->(tuple) { appeared(tuple.first) }.weak!)
+        rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.weak!)
+        rac_signalForSelector('viewDidDisappear:').subscribeNext(->(tuple) { disappeared(tuple.first) }.weak!)
 
         sub.subscribeOn(RACScheduler.mainThreadScheduler).deliverOn(RACScheduler.mainThreadScheduler).takeUntil(rac_willDeallocSignal)
       end
@@ -91,7 +91,7 @@ module RMXViewControllerPresentation
       viewStateSignal
       .filter(->((_state, animated)) {
         state == _state
-      }.rmx_unsafe!)
+      }.weak!)
     end
 
     def viewStateFilteredOnceSignal(state)

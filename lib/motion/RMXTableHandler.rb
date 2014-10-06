@@ -67,14 +67,14 @@ class RMXTableHandler
     .deliverOn(RACScheduler.mainThreadScheduler)
     .subscribeNext(->(v) {
       animateUpdates
-    }.rmx_unsafe!)
+    }.weak!)
 
     rac_willDeallocSignal.subscribeCompleted(-> {
       if tv = tableView
         tv.dataSource = nil
         tv.delegate = nil
       end
-    }.rmx_unsafe!)
+    }.weak!)
     self
   end
 
