@@ -94,12 +94,8 @@ module RMXViewControllerPresentation
       }.rmx_unsafe!)
     end
 
-    def whenOrIfViewState(viewState, &block)
-      viewStateFilteredSignal(viewState)
-      .take(1)
-      .subscribeNext(->(v) {
-        block.call
-      })
+    def viewStateFilteredOnceSignal(state)
+      viewStateFilteredSignal(state).take(1)
     end
 
     def appearing(animated)
