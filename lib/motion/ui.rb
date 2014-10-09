@@ -21,12 +21,6 @@ class RMX
   end
 
   def self.keyboardWillChangeFrame(notification)
-    @keyboardWillChangeFrameNotification = notification
-    processKeyboardWillChange
-  end
-
-  def self.processKeyboardWillChange
-    return unless notification = @keyboardWillChangeFrameNotification
     info = notification.userInfo
     keyboardFrame = info.objectForKey(UIKeyboardFrameEndUserInfoKey).CGRectValue
     bounds = UIScreen.mainScreen.bounds
@@ -48,7 +42,6 @@ class RMX
         :animationDuration => animationDuration
       })
     end
-    @keyboardWillChangeFrameNotification = nil
   end
 
   def self.currentKeyboardHeight

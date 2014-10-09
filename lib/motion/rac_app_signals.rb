@@ -142,6 +142,61 @@ class RMX
     rac_appSignal(UIContentSizeCategoryDidChangeNotification)
   end
 
+
+  # Posted when an UIWindow object becomes hidden.
+  # The notification object is the window object that has become hidden. This notification does not contain a userInfo dictionary
+  def self.rac_windowDidBecomeHiddenNotification
+    rac_appSignal(UIWindowDidBecomeHiddenNotification)
+  end
+
+  # Posted whenever a UIWindow object becomes the key window.
+  # The notification object is the window object that has become key. This notification does not contain a userInfo dictionary.
+  def self.rac_windowDidBecomeKeyNotification
+    rac_appSignal(UIWindowDidBecomeKeyNotification)
+  end
+
+  # Posted whenever a UIWindow object resigns its status as main window.
+  # The notification object is the window object that has resigned its main window status. This notification does not contain a userInfo dictionary.
+  def self.rac_windowDidResignKeyNotification
+    rac_appSignal(UIWindowDidResignKeyNotification)
+  end
+
+  # Posted immediately prior to the display of the keyboard.
+  # The notification object is nil. The userInfo dictionary contains information about the keyboard. Use the keys described in Keyboard Notification User Info Keys to get the location and size of the keyboard from the userInfo dictionary.
+  def self.rac_keyboardWillShowNotification
+    rac_appSignal(UIKeyboardWillShowNotification)
+  end
+
+  # Posted immediately after the display of the keyboard.
+  # The notification object is nil. The userInfo dictionary contains information about the keyboard. Use the keys described in Keyboard Notification User Info Keys to get the location and size of the keyboard from the userInfo dictionary.
+  def self.rac_keyboardDidShowNotification
+    rac_appSignal(UIKeyboardDidShowNotification)
+  end
+
+  # Posted immediately prior to the dismissal of the keyboard.
+  # The notification object is nil. The userInfo dictionary contains information about the keyboard. Use the keys described in Keyboard Notification User Info Keys to get the location and size of the keyboard from the userInfo dictionary.
+  def self.rac_keyboardWillHideNotification
+    rac_appSignal(UIKeyboardWillHideNotification)
+  end
+
+  # Posted immediately after the dismissal of the keyboard.
+  # The notification object is nil. The userInfo dictionary contains information about the keyboard. Use the keys described in Keyboard Notification User Info Keys to get the location and size of the keyboard from the userInfo dictionary.
+  def self.rac_keyboardDidHideNotification
+    rac_appSignal(UIKeyboardDidHideNotification)
+  end
+
+  # Posted immediately prior to a change in the keyboard’s frame.
+  # The notification object is nil. The userInfo dictionary contains information about the keyboard. Use the keys described in Keyboard Notification User Info Keys to get the location and size of the keyboard from the userInfo dictionary.
+  def self.rac_keyboardWillChangeFrameNotification
+    rac_appSignal(UIKeyboardWillChangeFrameNotification)
+  end
+
+  # Posted immediately after a change in the keyboard’s frame.
+  # The notification object is nil. The userInfo dictionary contains information about the keyboard. Use the keys described in Keyboard Notification User Info Keys to get the location and size of the keyboard from the userInfo dictionary.
+  def self.rac_keyboardDidChangeFrameNotification
+    rac_appSignal(UIKeyboardDidChangeFrameNotification)
+  end
+
   def self.launchedAt
     res = @launchedAt
     res
@@ -207,7 +262,17 @@ class RMX
       UIApplicationUserDidTakeScreenshotNotification,
       UIApplicationWillChangeStatusBarOrientationNotification,
       UIApplicationWillChangeStatusBarFrameNotification,
-      UIContentSizeCategoryDidChangeNotification
+      UIContentSizeCategoryDidChangeNotification,
+
+      UIWindowDidBecomeHiddenNotification,
+      UIWindowDidBecomeKeyNotification,
+      UIWindowDidResignKeyNotification,
+      UIKeyboardWillShowNotification,
+      UIKeyboardDidShowNotification,
+      UIKeyboardWillHideNotification,
+      UIKeyboardDidHideNotification,
+      UIKeyboardWillChangeFrameNotification,
+      UIKeyboardDidChangeFrameNotification
     ].each do |name|
       @rmx_rac_appSignals[name] = NSNotificationCenter.defaultCenter.rac_addObserverForName(name, object:nil)
     end

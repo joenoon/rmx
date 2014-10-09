@@ -5,22 +5,23 @@ class RMXTableViewController < UITableViewController
   include RMXKeyboardHelpers
   include RMXSetAttributes
 
+  def init
+    s = super
+    RMX.log_dealloc(self)
+    viewStateSignal
+    listenForKeyboardChanged
+    prepare
+    s
+  end
+
   def prepare
   end
 
   def loaded
   end
 
-  def init
-    s = super
-    listenForKeyboardChanged
-    prepare
-    s
-  end
-
   def viewDidLoad
     s = super
-    viewStateSignal
     loaded
     s
   end

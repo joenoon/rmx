@@ -21,20 +21,13 @@ module RMXKeyboardHelpers
     end
   end
 
+  # @todo clean this up or get rid of it
   def listenForKeyboardChanged
     NSNotificationCenter.defaultCenter.rac_addObserverForName("rmxKeyboardChanged", object:nil)
     .takeUntil(rac_willDeallocSignal)
     .subscribeNext(->(notification) {
-      keyboardChangedInternal(notification)
+      keyboardChanged(notification.userInfo)
     }.weak!)
-  end
-
-  # listens for the rmxKeyboardChanged notification and extracts the userInfo to call a friendlier method
-  def keyboardChangedInternal(notification)
-    if isViewLoaded
-      info = notification.userInfo
-      keyboardChanged(info)
-    end
   end
 
   # by default, looks to see if the controller is using the @keyboard_proxy_constraint convention.
