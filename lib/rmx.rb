@@ -31,7 +31,6 @@ Motion::Project::App.setup do |app|
     RMXViewControllerPresentation
     RMXKeyboardHelpers
     UIResponder+RMX
-    RMXNavigationBar
     RMXNavigationController
     RMXTableViewController
     RMXViewController

@@ -214,11 +214,12 @@ class RMXEventManager
     .take(1)
     .mapReplace(controller)
     .subscribeNext(->(c) {
-      RMXViewControllerPresentation.dismiss({
-        :view_controller => c,
-        :animated => (opts[:animated] || false),
-        :completion => nil
-      })
+      anim = (opts[:animated] || false)
+      if c.presentingViewController
+        c.dismissViewControllerAnimated(anim, completion:nil)
+      elsif c.navigationController
+        c.navigationController.popViewControllerAnimated(anim)
+      end
     })
 
     controller
