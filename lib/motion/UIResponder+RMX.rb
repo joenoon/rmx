@@ -1,3 +1,4 @@
+# @todo - deprecate, not being used anywhere right now
 class UIResponder
 
   Dispatch.once do

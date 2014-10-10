@@ -1,3 +1,4 @@
+# @todo - deprecate?
 module RMXCommonMethods
 
   def description

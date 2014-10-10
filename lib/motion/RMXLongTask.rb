@@ -12,6 +12,7 @@
 #   end
 # end
 #
+# @todo - refactor
 module RMXLongTask
 
   def self.createSignal(desc=nil, &block)

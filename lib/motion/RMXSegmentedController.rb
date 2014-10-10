@@ -1,3 +1,4 @@
+# @todo - check
 class RMXSegmentedController < RMXViewController
 
   attr_accessor :index_on_load

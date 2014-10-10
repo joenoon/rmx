@@ -29,36 +29,4 @@ class RMX
     end
   end
 
-  IVAR_LOCK = NSLock.new
-
-  def sync_ivar(*args, &block)
-    IVAR_LOCK.lock
-    res = ivar(*args, &block)
-    IVAR_LOCK.unlock
-    res
-  end
-
-  def kvo_sync_ivar(*args, &block)
-    res = nil
-    if object = unsafe_unretained_object
-      key = args[0].to_s
-      object.willChangeValueForKey(key)
-      IVAR_LOCK.lock
-      res = ivar(*args, &block)
-      IVAR_LOCK.unlock
-      object.didChangeValueForKey(key)
-    end
-    res
-  end
-
-  def nil_instance_variables!
-    if object = unsafe_unretained_object
-      ivars = [] + object.instance_variables
-      while ivar = ivars.pop
-        object.instance_variable_set(ivar, nil)
-      end
-      true
-    end
-  end
-
 end

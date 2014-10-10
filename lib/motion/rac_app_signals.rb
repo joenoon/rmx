@@ -321,18 +321,6 @@ class RMX
       @lastActivatedAt = Time.now
     })
 
-    rac_appSignal(UIApplicationDidEnterBackgroundNotification).subscribeNext(->(v) {
-      if DEBUG_APP_STATE
-        NSLog("*** UIApplicationDidEnterBackgroundNotification: #{v.description}")
-      end
-    })
-
-    rac_appSignal(UIApplicationWillEnterForegroundNotification).subscribeNext(->(v) {
-      if DEBUG_APP_STATE
-        NSLog("*** UIApplicationWillEnterForegroundNotification: #{v.description}")
-      end
-    })
-
     rac_appSignal(UIApplicationWillResignActiveNotification).subscribeNext(->(v) {
       if DEBUG_APP_STATE
         NSLog("*** UIApplicationWillResignActiveNotification: #{v.description}")
@@ -340,23 +328,27 @@ class RMX
       @lastResignedAt = Time.now
     })
 
-    rac_appSignal(UIApplicationWillTerminateNotification).subscribeNext(->(v) {
-      if DEBUG_APP_STATE
+    if DEBUG_APP_STATE
+      rac_appSignal(UIApplicationDidEnterBackgroundNotification).subscribeNext(->(v) {
+        NSLog("*** UIApplicationDidEnterBackgroundNotification: #{v.description}")
+      })
+
+      rac_appSignal(UIApplicationWillEnterForegroundNotification).subscribeNext(->(v) {
+        NSLog("*** UIApplicationWillEnterForegroundNotification: #{v.description}")
+      })
+
+      rac_appSignal(UIApplicationWillTerminateNotification).subscribeNext(->(v) {
         NSLog("*** UIApplicationWillTerminateNotification: #{v.description}")
-      end
-    })
+      })
 
-    rac_appSignal(RMXApplicationDidBecomeActiveFromBackground).subscribeNext(->(v) {
-      if DEBUG_APP_STATE
+      rac_appSignal(RMXApplicationDidBecomeActiveFromBackground).subscribeNext(->(v) {
         NSLog("*** RMXApplicationDidBecomeActiveFromBackground: #{v.description}")
-      end
-    })
+      })
 
-    rac_appSignal(RMXApplicationDidBecomeActiveFromForeground).subscribeNext(->(v) {
-      if DEBUG_APP_STATE
+      rac_appSignal(RMXApplicationDidBecomeActiveFromForeground).subscribeNext(->(v) {
         NSLog("*** RMXApplicationDidBecomeActiveFromForeground: #{v.description}")
-      end
-    })
+      })
+    end
 
   end
 

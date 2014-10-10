@@ -21,6 +21,7 @@ module RMXViewControllerPresentation
           sub.sendNext(v)
         }.weak!)
 
+        # @todo - deprecate
         rac_signalForSelector('viewWillAppear:').subscribeNext(->(tuple) { appearing(tuple.first) }.weak!)
         rac_signalForSelector('viewDidAppear:').subscribeNext(->(tuple) { appeared(tuple.first) }.weak!)
         rac_signalForSelector('viewWillDisappear:').subscribeNext(->(tuple) { disappearing(tuple.first) }.weak!)
@@ -41,15 +42,19 @@ module RMXViewControllerPresentation
       viewStateFilteredSignal(state).take(1)
     end
 
+    # @todo - deprecate
     def appearing(animated)
     end
 
+    # @todo - deprecate
     def appeared(animated)
     end
 
+    # @todo - deprecate
     def disappearing(animated)
     end
 
+    # @todo - deprecate
     def disappeared(animated)
     end
 

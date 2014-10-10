@@ -15,7 +15,6 @@ Motion::Project::App.setup do |app|
     accessors
     instance_variables
     dealloc_logging
-    RMXRACAssignmentHelper
     rac_app_signals
     rac_macros
     ui

@@ -1,3 +1,4 @@
+# @todo - deprecate?
 class RMXAutoLayoutScrollView < UIScrollView
   class FollowView < UIView
     RMX.new(self).weak_attr_accessor :fittedView
