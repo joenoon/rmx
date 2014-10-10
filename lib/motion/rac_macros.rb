@@ -29,20 +29,20 @@ class RMX
   #
   # Simple version:
   #
-  #   RMX(target).rac(keypath).signal = a_signal
-  #   i.e. RMX(self).rac("items").signal = a_signal
+  #   RMX(target).rac[keypath] = a_signal
+  #   i.e. RMX(self).rac["items"] = a_signal
   #
   # Like the RAC macro, a default nilValue can be given. If the
   # assigned signal `nexts` a nil, this nilValue will be used instead.
   #
-  #   RMX(target).rac(keypath, 42).signal = a_signal_that_nexts_nil
-  #   i.e. RMX(self).rac("items", 42).signal = a_signal_that_nexts_nil
+  #   RMX(target).rac(42)[keypath] = a_signal_that_nexts_nil
+  #   i.e. RMX(self).rac(42)["items"] = a_signal_that_nexts_nil
   #
   # For more information, check rac's RACSubscriptingAssignmentTrampoline.h.
   #
-  def rac(keypath, nilval=nil)
+  def rac(nilval=nil)
     if object = unsafe_unretained_object
-      RMXRACAssignmentHelper.new(RACSubscriptingAssignmentTrampoline.alloc.initWithTarget(object, nilValue:nilval), keypath)
+      RACSubscriptingAssignmentTrampoline.alloc.initWithTarget(object, nilValue:nilval)
     end
   end
 
