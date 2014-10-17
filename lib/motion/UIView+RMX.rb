@@ -5,8 +5,8 @@ class UIView
   # automatic if you make sure not to use strong blocks in subscribeNext).
   #
   def rmx_gestureSignal(gesture, enableInteraction=true)
+    setUserInteractionEnabled(true) if enableInteraction
     RACSignal.createSignal(->(subscriber) {
-      setUserInteractionEnabled(true) if enableInteraction && !userInteractionEnabled?
       addGestureRecognizer(gesture)
       gesture.rac_gestureSignal.takeUntil(rac_willDeallocSignal).subscribe(subscriber)
       RACDisposable.disposableWithBlock(-> {
