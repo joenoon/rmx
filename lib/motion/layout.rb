@@ -37,12 +37,12 @@ class RMX
     RELATED_BY_LOOKUP_INVERSE = RELATED_BY_LOOKUP.invert
 
     PRIORITY_LOOKUP = {
-      "max" => UILayoutPriorityRequired, # = 1000
-      "required" => UILayoutPriorityRequired, # = 1000
-      "high" => UILayoutPriorityDefaultHigh, # = 750
+      "max" => 1000,
+      "required" => 1000,
+      "high" => 750,
       "med" => 500,
-      "low" => UILayoutPriorityDefaultLow, # = 250
-      "fit" => UILayoutPriorityFittingSizeLevel # = 50
+      "low" => 250,
+      "fit" => 50
     }
 
     PRIORITY_LOOKUP_INVERSE = PRIORITY_LOOKUP.invert
