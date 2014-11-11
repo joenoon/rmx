@@ -1,5 +1,4 @@
 #import "RMXRACHelper.h"
-#import "RACScheduler.h"
 
 @implementation RMXRACHelper
 
