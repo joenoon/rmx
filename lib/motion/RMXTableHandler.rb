@@ -199,10 +199,12 @@ class RMXTableHandler
   end
 
   def delegateRespondsTo?(sel)
-    if @delegateRespondsTo[sel].nil?
-      @delegateRespondsTo[sel] = delegate.respondsToSelector(sel)
+    if delegate
+      if @delegateRespondsTo[sel].nil?
+        @delegateRespondsTo[sel] = delegate.respondsToSelector(sel)
+      end
+      @delegateRespondsTo[sel]
     end
-    @delegateRespondsTo[sel]
   end
 
   def tableView(tableView, viewForHeaderInSection:section)
