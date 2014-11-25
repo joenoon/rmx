@@ -176,6 +176,7 @@ class RMXTableHandler
   end
 
   def heightForRowAtIndexPath(indexPath, allow_estimated=false)
+    return 0 unless delegate
     data = delegate.tableHandler(self, dataForSection:indexPath.section)[indexPath.row]
     opts = delegate.tableHandler(self, optsForData:data, section:indexPath.section, row:indexPath.row) || {}
     reuseIdentifier = opts[:reuseIdentifier].to_s
@@ -248,6 +249,7 @@ class RMXTableHandler
   end
 
   def tableView(tableView, numberOfRowsInSection:section)
+    return 0 unless delegate
     res = if delegateRespondsTo?('tableHandler:numberOfRowsInSection:')
       delegate.tableHandler(self, numberOfRowsInSection:section)
     else
@@ -258,6 +260,7 @@ class RMXTableHandler
   end
 
   def numberOfSectionsInTableView(tableView)
+    return 0 unless delegate
     res = if delegateRespondsTo?('numberOfSectionsInTableHandler:')
       delegate.numberOfSectionsInTableHandler(self)
     else
