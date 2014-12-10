@@ -50,6 +50,7 @@ Motion::Project::App.setup do |app|
   rmx_env = ENV['rmx_env'] == '1' ? ENV.to_hash : {}
   rmx_env_string_parts = []
   rmx_env_string_parts << "class RMX"
+  rmx_env_string_parts << "  start_time = Time.now"
   rmx_env_string_parts << "  rmx_env = {}"
   # each env var is put into a hash with key and value obfuscated.
   # a comment is prepended for the developer with the unobfuscated value, but does not make it into the binary.
@@ -61,6 +62,7 @@ Motion::Project::App.setup do |app|
     rmx_env_string_parts << "  rmx_env[#{k_ords.inspect}.map { |x| x.chr }.join] = #{v_ords.inspect}.map { |x| x.chr }.join"
   end
   rmx_env_string_parts << "  Env = rmx_env.freeze"
+  rmx_env_string_parts << "  TimeToParseEnv = (Time.now - start_time).freeze"
   rmx_env_string_parts << "end"
   File.open(env_filename, "w") do |f|
     f.puts rmx_env_string_parts.join("\n")
