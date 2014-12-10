@@ -100,6 +100,7 @@ class RMXEventManager
       @storeChangedSignal
     ])
     .bufferWithTime(0.5, onScheduler:RACScheduler.mainThreadScheduler)
+    .takeUntil(rac_willDeallocSignal)
 
     @eventsSignal = RMX(self).racObserve("events")
 
