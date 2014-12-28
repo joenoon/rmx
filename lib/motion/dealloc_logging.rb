@@ -15,7 +15,7 @@ class RMX
   end
 
   def self.log_dealloc(object, verbose=false)
-    LOG_DEALLOC_QUEUE.sync do
+    LOG_DEALLOC_QUEUE.async do
       $rmx_log_deallocs.addObject(object)
     end
     if verbose || DEBUG_DEALLOC
