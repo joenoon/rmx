@@ -64,7 +64,7 @@ class RMXEventManager
 
   attr_accessor :sources, :selectedCalendars, :calendar, :store
 
-  attr_reader :refreshSignal, :eventsSignal, :storeChangedSignal
+  attr_reader :refreshSignal, :eventsSignal
 
   # override
   def firstDate
@@ -92,12 +92,9 @@ class RMXEventManager
     @sources = []
     @selectedCalendars = NSMutableSet.new
 
-    @storeChangedSignal = NSNotificationCenter.defaultCenter.rac_addObserverForName(EKEventStoreChangedNotification, object:@store).takeUntil(rac_willDeallocSignal)
-
     @refreshSignal = RACSignal.merge([
       RMX.rac_appDidFinishLaunchingNotification,
-      RMX.rac_appDidBecomeActiveFromBackground,
-      @storeChangedSignal
+      RMX.rac_appDidBecomeActiveFromBackground
     ])
     .bufferWithTime(0.5, onScheduler:RACScheduler.mainThreadScheduler)
     .takeUntil(rac_willDeallocSignal)
