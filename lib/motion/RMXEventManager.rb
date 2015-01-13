@@ -140,17 +140,36 @@ class RMXEventManager
         subscriber.sendNext(true)
         subscriber.sendCompleted
       else
+        was_not_determined = _status == EKAuthorizationStatusNotDetermined
         @store.requestAccessToEntityType(EKEntityTypeEvent, completion:->(_granted, _error) {
           RACScheduler.mainThreadScheduler.schedule(-> {
             resetStoredSelectedCalendars
             refresh
-            subscriber.sendNext(_authorized?)
+            auth = _authorized?
+            subscriber.sendNext(auth)
             subscriber.sendCompleted
+            if was_not_determined
+              trackShownPrompt
+              if auth
+                trackAllow
+              else
+                trackDeny
+              end
+            end
           })
         })
       end
       nil
     }).subscribeOn(RACScheduler.mainThreadScheduler).deliverOn(RACScheduler.mainThreadScheduler)
+  end
+
+  def trackShownPrompt
+  end
+
+  def trackAllow
+  end
+
+  def trackDeny
   end
 
   def refresh
