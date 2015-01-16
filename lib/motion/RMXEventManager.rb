@@ -221,7 +221,7 @@ class RMXEventManager
     controller.rac_signalForSelector('viewWillAppear:')
     .take(1)
     .subscribeNext(->(tuple) {
-      opts[:animated] = tuple[0].boolValue
+      opts[:animated] = RMX.boolValue(tuple[0])
     })
 
     RACSignal.merge([

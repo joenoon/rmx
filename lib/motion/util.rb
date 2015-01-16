@@ -14,4 +14,12 @@ class RMX
     end
   end
 
+  def self.boolValue(val)
+    if val.is_a?(Numeric)
+      val.boolValue
+    else
+      !!val
+    end
+  end
+
 end
