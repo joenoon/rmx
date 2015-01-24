@@ -22,4 +22,13 @@ class RMX
     end
   end
 
+  def self.logMethodCall(obj, signature)
+    obj_desc = obj.rmx_object_desc
+    obj.rac_signalForSelector(signature)
+    .subscribeNext(->(tuple) {
+      NSLog("[RMX.logMethodCall](#{obj_desc}##{signature}) args: #{tuple.allObjects}")
+    })
+    nil
+  end
+
 end
