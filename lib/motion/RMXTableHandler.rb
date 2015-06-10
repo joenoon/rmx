@@ -64,7 +64,7 @@ class RMXTableHandler
     @animateUpdatesSignal
     .takeUntil(rac_willDeallocSignal)
     .throttle(0.25)
-    .deliverOn(RACScheduler.mainThreadScheduler)
+    .deliverOnMainThread
     .takeUntil(rac_willDeallocSignal)
     .subscribeNext(->(v) {
       animateUpdates

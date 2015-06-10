@@ -160,7 +160,7 @@ class RMXEventManager
         })
       end
       nil
-    }).subscribeOn(RACScheduler.mainThreadScheduler).deliverOn(RACScheduler.mainThreadScheduler)
+    }).subscribeOn(RACScheduler.mainThreadScheduler).deliverOnMainThread
   end
 
   def trackShownPrompt

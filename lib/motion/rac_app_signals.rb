@@ -237,7 +237,7 @@ class RMX
   end
 
   def self.rac_appSignal(name)
-    res = @rmx_rac_appSignals[name].deliverOn(RACScheduler.mainThreadScheduler)
+    res = @rmx_rac_appSignals[name].deliverOnMainThread
     res
   end
 
