@@ -1,5 +1,5 @@
 #import <Foundation/Foundation.h>
-#import "RACScheduler.h"
+#import <ReactiveCocoa/RACScheduler.h>
 
 @class RACScheduler;
 
