@@ -4,8 +4,8 @@ class RMX
 
   # Raises an exception when called from a thread other than the main thread.
   # Good for development and experimenting.
-  def self.assert_main_thread!
-    raise "Expected main thread. #{Dispatch::Queue.current.description}" unless RACScheduler.isOnMainThread
+  def self.assert_main_thread!(str="")
+    raise "Expected main thread. #{Dispatch::Queue.current.description} #{str}" unless RACScheduler.isOnMainThread
   end
 
   def own_methods
