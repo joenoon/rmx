@@ -27,7 +27,7 @@ class RMX
   RMX.rac_keyboardWillHideNotification
   .subscribeNext(->(notification) {
     info = notification.userInfo
-    animationDuration = info.objectForKey(UIKeyboardAnimationDurationUserInfoKey).doubleValue
+    animationDuration = info.objectForKey(UIKeyboardAnimationDurationUserInfoKey)
     @currentKeyboardHeight = 0
     NSNotificationCenter.defaultCenter.postNotificationName("rmxKeyboardChanged", object:nil, userInfo:{
       :height => 0,
@@ -39,7 +39,7 @@ class RMX
   .subscribeNext(->(notification) {
     info = notification.userInfo
     keyboardFrame = info.objectForKey(UIKeyboardFrameEndUserInfoKey).CGRectValue
-    animationDuration = info.objectForKey(UIKeyboardAnimationDurationUserInfoKey).doubleValue
+    animationDuration = info.objectForKey(UIKeyboardAnimationDurationUserInfoKey)
     currentKeyboardHeight = keyboardFrame.size.height
     @currentKeyboardHeight = currentKeyboardHeight
     NSNotificationCenter.defaultCenter.postNotificationName("rmxKeyboardChanged", object:nil, userInfo:{
