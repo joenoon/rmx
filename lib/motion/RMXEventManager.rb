@@ -15,7 +15,7 @@
 # `selectedCalendarObjects=`.  You will probably only need to present the controller
 # and everything else is handled automatically:
 #
-#   navigationController.pushViewController(PZOEventManager.shared.newCalendarChooser, animated:true)
+#   navigationController.pushViewController(RMXEventManager.shared.newCalendarChooser, animated:true)
 #
 # `eventsSignal` is a rac property observer on `events`
 #
@@ -111,12 +111,14 @@ class RMXEventManager
   end
 
   def self.shared
+    RMX.assert_main_thread!("#{__FILE__}:#{__LINE__}")
     Dispatch.once { @shared = new }
     @shared
   end
 
   def enableRefresh
     @refreshDisposable = @refreshSignal
+    .deliverOnMainThread
     .takeUntil(rac_willDeallocSignal)
     .subscribeNext(->(x) {
       refresh
@@ -208,7 +210,7 @@ class RMXEventManager
 
   def newCalendarChooser
     RMX.assert_main_thread!
-    controller = EKCalendarChooser.alloc.initWithSelectionStyle(EKCalendarChooserSelectionStyleMultiple, displayStyle:EKCalendarChooserDisplayAllCalendars, entityType:EKEntityTypeEvent, eventStore:PZOEventManager.shared.store)
+    controller = EKCalendarChooser.alloc.initWithSelectionStyle(EKCalendarChooserSelectionStyleMultiple, displayStyle:EKCalendarChooserDisplayAllCalendars, entityType:EKEntityTypeEvent, eventStore:@store)
     controller.hidesBottomBarWhenPushed = true
     controller.delegate = self
     controller.showsDoneButton = true
